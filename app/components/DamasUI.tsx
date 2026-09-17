@@ -1,4 +1,8 @@
-import { HeartOutline, PencilIcon, SmileyIcon, ImageIcon, StarIcon, MicIcon, SendIcon } from "./DamasIcons";
+"use client";
+
+import { useRef, useState } from "react";
+import { upload } from "@vercel/blob/client";
+import { HeartOutline, PencilIcon, ImageIcon, MusicIcon, SendIcon } from "./DamasIcons";
 
 /* -------------------------------------------------------------------- */
 /*  Blocos pequenos reutilizáveis                                        */
@@ -21,10 +25,14 @@ function IconButton({
   icon,
   label,
   onClick,
+  active,
+  fileName,
 }: {
   icon: React.ReactNode;
   label: string;
   onClick?: () => void;
+  active?: boolean;
+  fileName?: string | null;
 }) {
   return (
     <button
@@ -35,11 +43,17 @@ function IconButton({
     >
       <span
         aria-hidden="true"
-        className="flex h-14 w-14 items-center justify-center rounded-full border border-fuchsia-400/50 text-fuchsia-300 shadow-[0_0_10px_rgba(255,110,199,0.35)] transition-transform duration-200 group-hover:scale-110 group-active:scale-95 group-hover:shadow-[0_0_18px_rgba(255,110,199,0.65)]"
+        className={`flex h-14 w-14 items-center justify-center rounded-full border transition-transform duration-200 group-hover:scale-110 group-active:scale-95 ${
+          active
+            ? "border-fuchsia-300 text-fuchsia-200 shadow-[0_0_18px_rgba(255,110,199,0.75)]"
+            : "border-fuchsia-400/50 text-fuchsia-300 shadow-[0_0_10px_rgba(255,110,199,0.35)] group-hover:shadow-[0_0_18px_rgba(255,110,199,0.65)]"
+        }`}
       >
         {icon}
       </span>
-      <span className="text-[11px] leading-tight text-center max-w-[64px]">{label}</span>
+      <span className="text-[11px] leading-tight text-center max-w-[80px] truncate">
+        {fileName ? fileName : label}
+      </span>
     </button>
   );
 }
@@ -86,7 +100,122 @@ export function SparklesLayer() {
 /*  Formulário de recado                                                 */
 /* -------------------------------------------------------------------- */
 
+const MAX_PHOTO_SIZE = 15 * 1024 * 1024; // 15MB
+const MAX_MUSIC_SIZE = 20 * 1024 * 1024; // 20MB
+
+// Formata visualmente enquanto a pessoa digita: (85) 99999-8888
+// (o que é ENVIADO pro servidor são só os dígitos, sem a máscara)
+function formatarTelefoneVisual(valor: string) {
+  const d = valor.replace(/\D/g, "").slice(0, 11); // DDD + até 9 dígitos
+  if (d.length <= 2) return d;
+  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7, 11)}`;
+}
+
 export function MessageForm() {
+  const [mensagem, setMensagem] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [foto, setFoto] = useState<File | null>(null);
+  const [musica, setMusica] = useState<File | null>(null);
+  const [status, setStatus] = useState<"idle" | "enviando" | "sucesso" | "erro">("idle");
+  const [erro, setErro] = useState("");
+
+  const fotoInputRef = useRef<HTMLInputElement>(null);
+  const musicaInputRef = useRef<HTMLInputElement>(null);
+
+  function handleTelefoneChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setTelefone(formatarTelefoneVisual(e.target.value));
+  }
+
+  function handleFotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    if (file && file.size > MAX_PHOTO_SIZE) {
+      setErro("A foto precisa ter até 15MB.");
+      e.target.value = "";
+      return;
+    }
+    setErro("");
+    setFoto(file);
+  }
+
+  function handleMusicaChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    if (file && file.size > MAX_MUSIC_SIZE) {
+      setErro("O áudio precisa ter até 20MB.");
+      e.target.value = "";
+      return;
+    }
+    setErro("");
+    setMusica(file);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (status === "enviando") return;
+
+    const trimmed = mensagem.trim();
+    if (!trimmed) {
+      setErro("Escreva uma mensagem antes de enviar.");
+      return;
+    }
+
+    const digitos = telefone.replace(/\D/g, "");
+    const numeroValido = digitos.length === 10 || digitos.length === 11;
+    if (!numeroValido) {
+      setErro("Informe um WhatsApp válido, com DDD (ex: 85 99999-8888).");
+      return;
+    }
+
+    setErro("");
+    setStatus("enviando");
+
+    try {
+      let photoUrl: string | undefined;
+      let musicUrl: string | undefined;
+
+      if (foto) {
+        const blob = await upload(`recados/foto-${Date.now()}-${foto.name}`, foto, {
+          access: "public",
+          handleUploadUrl: "/api/recados/upload",
+        });
+        photoUrl = blob.url;
+      }
+
+      if (musica) {
+        const blob = await upload(`recados/musica-${Date.now()}-${musica.name}`, musica, {
+          access: "public",
+          handleUploadUrl: "/api/recados/upload",
+        });
+        musicUrl = blob.url;
+      }
+
+      const res = await fetch("/api/recados", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: trimmed,
+          photoUrl,
+          musicUrl,
+          numeroDestinatario: digitos,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Falha ao enviar");
+
+      setStatus("sucesso");
+      setMensagem("");
+      setTelefone("");
+      setFoto(null);
+      setMusica(null);
+      if (fotoInputRef.current) fotoInputRef.current.value = "";
+      if (musicaInputRef.current) musicaInputRef.current.value = "";
+    } catch (err) {
+      console.error(err);
+      setStatus("erro");
+      setErro("Não foi possível enviar seu recado. Tente novamente.");
+    }
+  }
+
   return (
     <section
       className="relative z-10 mt-7 rounded-[2rem] neon-card-border px-6 py-7"
@@ -109,51 +238,109 @@ export function MessageForm() {
         Formulário para enviar um recado anônimo
       </h2>
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          // lógica de envio aqui
-        }}
-      >
-        <label htmlFor="mensagem" className="block text-[15px] text-purple-100/90 mb-2">
-          Escreva sua mensagem
-        </label>
+      {status === "sucesso" ? (
+        <div className="text-center py-6">
+          <p className="text-lg text-fuchsia-200 font-script text-2xl mb-4">
+            Seu recadinho foi enviado! 💌
+          </p>
+          <button
+            type="button"
+            onClick={() => setStatus("idle")}
+            className="text-sm text-purple-200 underline underline-offset-4"
+          >
+            Enviar outro recado
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <label htmlFor="mensagem" className="block text-[15px] text-purple-100/90 mb-2">
+            Escreva sua mensagem
+          </label>
 
-        <div className="relative">
-          <PencilIcon
-            className="absolute left-3 top-3 w-4 h-4 text-purple-300/80"
-            aria-hidden="true"
-          />
-          <textarea
-            id="mensagem"
-            name="mensagem"
-            rows={4}
+          <div className="relative">
+            <PencilIcon
+              className="absolute left-3 top-3 w-4 h-4 text-purple-300/80"
+              aria-hidden="true"
+            />
+            <textarea
+              id="mensagem"
+              name="mensagem"
+              rows={4}
+              required
+              value={mensagem}
+              onChange={(e) => setMensagem(e.target.value)}
+              placeholder={"Digite aqui o seu recadinho...\n(sem se identificar)"}
+              className="neon-textarea w-full resize-none rounded-2xl border border-fuchsia-500/50 bg-black/40 py-3 pl-9 pr-3 text-base text-purple-50 placeholder-purple-300/50 outline-none transition-shadow focus-visible:border-fuchsia-300 focus-visible:shadow-[0_0_18px_rgba(255,110,199,0.5)] focus-visible:ring-2 focus-visible:ring-fuchsia-300/60"
+            />
+          </div>
+
+          <label htmlFor="telefone" className="block text-[15px] text-purple-100/90 mt-5 mb-2">
+            WhatsApp de quem vai receber (com DDD)
+          </label>
+          <input
+            id="telefone"
+            name="telefone"
+            type="tel"
+            inputMode="numeric"
             required
-            placeholder={"Digite aqui o seu recadinho...\n(sem se identificar)"}
-            className="neon-textarea w-full resize-none rounded-2xl border border-fuchsia-500/50 bg-black/40 py-3 pl-9 pr-3 text-base text-purple-50 placeholder-purple-300/50 outline-none transition-shadow focus-visible:border-fuchsia-300 focus-visible:shadow-[0_0_18px_rgba(255,110,199,0.5)] focus-visible:ring-2 focus-visible:ring-fuchsia-300/60"
+            value={telefone}
+            onChange={handleTelefoneChange}
+            placeholder="(85) 99999-8888"
+            maxLength={15}
+            className="neon-textarea w-full rounded-2xl border border-fuchsia-500/50 bg-black/40 py-3 px-4 text-base text-purple-50 placeholder-purple-300/50 outline-none transition-shadow focus-visible:border-fuchsia-300 focus-visible:shadow-[0_0_18px_rgba(255,110,199,0.5)] focus-visible:ring-2 focus-visible:ring-fuchsia-300/60"
           />
-        </div>
 
-        <div className="mt-6 flex justify-between px-1">
-          <IconButton icon={<SmileyIcon className="w-6 h-6" />} label="Emojis" />
-          <IconButton icon={<ImageIcon className="w-6 h-6" />} label="Anexar imagem" />
-          <IconButton icon={<StarIcon className="w-6 h-6" />} label="Anexar figura" />
-          <IconButton icon={<MicIcon className="w-6 h-6" />} label="Anexar áudio" />
-        </div>
+          <input
+            ref={fotoInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFotoChange}
+          />
+          <input
+            ref={musicaInputRef}
+            type="file"
+            accept="audio/*"
+            className="hidden"
+            onChange={handleMusicaChange}
+          />
 
-        <button
-          type="submit"
-          aria-label="Enviar recadinho anônimo"
-          className="send-button mt-7 flex w-full items-center justify-center gap-3 rounded-full py-4 font-script text-2xl text-white transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-          style={{
-            boxShadow:
-              "0 0 24px rgba(255,79,216,0.55), 0 0 45px rgba(138,43,226,0.35)",
-          }}
-        >
-          Enviar
-          <SendIcon className="w-6 h-6" aria-hidden="true" />
-        </button>
-      </form>
+          <div className="mt-6 flex justify-center gap-10 px-1">
+            <IconButton
+              icon={<ImageIcon className="w-6 h-6" />}
+              label="Anexar foto"
+              active={!!foto}
+              fileName={foto?.name}
+              onClick={() => fotoInputRef.current?.click()}
+            />
+            <IconButton
+              icon={<MusicIcon className="w-6 h-6" />}
+              label="Anexar música"
+              active={!!musica}
+              fileName={musica?.name}
+              onClick={() => musicaInputRef.current?.click()}
+            />
+          </div>
+
+          {erro && (
+            <p className="mt-4 text-center text-sm text-red-300">{erro}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={status === "enviando"}
+            aria-label="Enviar recadinho anônimo"
+            className="send-button mt-7 flex w-full items-center justify-center gap-3 rounded-full py-4 font-script text-2xl text-white transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-2 focus-visible:ring-offset-black disabled:opacity-60"
+            style={{
+              boxShadow:
+                "0 0 24px rgba(255,79,216,0.55), 0 0 45px rgba(138,43,226,0.35)",
+            }}
+          >
+            {status === "enviando" ? "Enviando..." : "Enviar"}
+            <SendIcon className="w-6 h-6" aria-hidden="true" />
+          </button>
+        </form>
+      )}
     </section>
   );
 }
