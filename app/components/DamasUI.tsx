@@ -77,7 +77,7 @@ export function MessageForm() {
 
       <div className="text-center mb-5">
         <img
-          src="/images/marca-em-estilo-neon-rosa.png"
+          src="/images/marca-em-estilo-neon-rosa.webp"
           alt="Damas da Night"
           className="mx-auto h-auto w-[140px]"
         />
