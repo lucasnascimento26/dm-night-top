@@ -145,6 +145,12 @@ export function MessageForm() {
     setTelefone(formatarTelefoneVisual(e.target.value));
   }
 
+  function handleTelefonePaste(e: React.ClipboardEvent<HTMLInputElement>) {
+    e.preventDefault();
+    const textoColado = e.clipboardData.getData("text");
+    setTelefone(formatarTelefoneVisual(textoColado));
+  }
+
   function handleFotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
     if (file && file.size > MAX_PHOTO_SIZE) {
@@ -179,8 +185,9 @@ export function MessageForm() {
 
     const digitos = limparTelefone(telefone);
 
-    // DDD (2 dígitos) + número (8 dígitos fixo ou 9 dígitos celular)
-    const numeroValido = digitos.length === 10 || digitos.length === 11;
+    // WhatsApp = celular brasileiro: DDD (2 dígitos) + 9 dígitos,
+    // sempre começando com "9" logo após o DDD. Total: 11 dígitos.
+    const numeroValido = digitos.length === 11 && digitos[2] === "9";
 
     if (!numeroValido) {
       setErro(
@@ -313,6 +320,7 @@ export function MessageForm() {
             required
             value={telefone}
             onChange={handleTelefoneChange}
+            onPaste={handleTelefonePaste}
             placeholder="(85) 99999-8888"
             maxLength={15}
             className="neon-textarea w-full rounded-2xl border border-fuchsia-500/50 bg-black/40 py-3 px-4 text-base text-purple-50 placeholder-purple-300/50 outline-none transition-shadow focus-visible:border-fuchsia-300 focus-visible:shadow-[0_0_18px_rgba(255,110,199,0.5)] focus-visible:ring-2 focus-visible:ring-fuchsia-300/60"
