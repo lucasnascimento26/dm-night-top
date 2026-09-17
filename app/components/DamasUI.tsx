@@ -103,10 +103,28 @@ export function SparklesLayer() {
 const MAX_PHOTO_SIZE = 15 * 1024 * 1024; // 15MB
 const MAX_MUSIC_SIZE = 20 * 1024 * 1024; // 20MB
 
+// ------------------------------------------------------------------
+// Telefone: aceita colar com ou sem código do país, sempre guarda
+// e envia só DDD + número (10 ou 11 dígitos), sem "+55" na frente.
+// ------------------------------------------------------------------
+
+// Limpa o que a pessoa digitou/colou e devolve só DDD+número (sem código do país)
+function limparTelefone(valor: string): string {
+  let d = valor.replace(/\D/g, "");
+
+  // Se veio com código do país (55 + DDD + número = 12 ou 13 dígitos),
+  // remove o "55" da frente
+  if (d.startsWith("55") && (d.length === 12 || d.length === 13)) {
+    d = d.slice(2);
+  }
+
+  return d.slice(0, 11); // no máximo DDD + 9 dígitos
+}
+
 // Formata visualmente enquanto a pessoa digita: (85) 99999-8888
 // (o que é ENVIADO pro servidor são só os dígitos, sem a máscara)
 function formatarTelefoneVisual(valor: string) {
-  const d = valor.replace(/\D/g, "").slice(0, 11); // DDD + até 9 dígitos
+  const d = limparTelefone(valor);
   if (d.length <= 2) return d;
   if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
   return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7, 11)}`;
@@ -159,10 +177,17 @@ export function MessageForm() {
       return;
     }
 
-    const digitos = telefone.replace(/\D/g, "");
+    const digitos = limparTelefone(telefone);
+
+    // DDD (2 dígitos) + número (8 dígitos fixo ou 9 dígitos celular)
     const numeroValido = digitos.length === 10 || digitos.length === 11;
+
     if (!numeroValido) {
-      setErro("Informe um WhatsApp válido, com DDD (ex: 85 99999-8888).");
+      setErro(
+        digitos.length === 0
+          ? "Informe o WhatsApp de quem vai receber, com DDD."
+          : "Número incompleto ou inválido. Use o formato (85) 99999-8888."
+      );
       return;
     }
 
@@ -196,11 +221,14 @@ export function MessageForm() {
           content: trimmed,
           photoUrl,
           musicUrl,
-          numeroDestinatario: digitos,
+          numeroDestinatario: digitos, // sempre 10 ou 11 dígitos, sem "55"
         }),
       });
 
-      if (!res.ok) throw new Error("Falha ao enviar");
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "Falha ao enviar");
+      }
 
       setStatus("sucesso");
       setMensagem("");
