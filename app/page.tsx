@@ -1,33 +1,31 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { HeartOutline, EnvelopeHeart, Diamond, CornerOrnament } from "./components/DamasIcons";
 import { OrnamentDivider, SparklesLayer, MessageForm } from "./components/DamasUI";
-import CupidEffectsLayer from "./components/CupidEffects";
+import Loader from "./components/Loader";
 
 export default function DamasDaNightPage() {
+  const [loading, setLoading] = useState(true);
+  const [isExiting, setIsExiting] = useState(false);
+
+  useEffect(() => {
+    const startExit = setTimeout(() => setIsExiting(true), 3200);
+    const removeLoader = setTimeout(() => setLoading(false), 3200 + 800);
+
+    return () => {
+      clearTimeout(startExit);
+      clearTimeout(removeLoader);
+    };
+  }, []);
+
+  if (loading) return <Loader isExiting={isExiting} />;
+
   return (
-    // Fundo geral da página (fora do "cartão"), usando back.webp.
-    // Precisa estar em public/images/back.webp
-    <main
-      className="relative min-h-screen w-full overflow-hidden bg-[#07030c] flex justify-center items-start sm:items-center py-0 sm:py-10 px-0 sm:px-4 bg-no-repeat bg-cover bg-center"
-      style={{ backgroundImage: "url('/images/back.webp')" }}
-    >
-      {/* overlay escuro sutil por cima do back.webp, pra manter contraste
-          e legibilidade do cartão no centro */}
-      <div
-        className="pointer-events-none absolute inset-0 bg-black/40"
-        aria-hidden="true"
-      />
-
-      {/* efeitos decorativos no fundo externo da página (fora do cartão) */}
-      <CupidEffectsLayer variant="page" />
-
+    <main className="content-fade-in relative min-h-screen w-full overflow-hidden bg-[#07030c] flex justify-center items-start sm:items-center py-0 sm:py-10 px-0 sm:px-4">
       {/* ---------------- Cartão (moldura fixa tipo mobile) ---------------- */}
       <div className="relative isolate w-full max-w-[420px] min-h-screen sm:min-h-[860px] overflow-hidden sm:rounded-[2.5rem] sm:shadow-[0_0_60px_rgba(0,0,0,0.6)] text-white">
-        {/* camada de fundo — "contain" + "left top" faz a imagem escalar
-            proporcionalmente (sem cortar e sem distorcer), ancorada na
-            lateral esquerda e subindo para o topo do cartão, em qualquer
-            tamanho de tela.
-            IMPORTANTE: o arquivo precisa estar em public/images/misteriosa-roxa.webp */}
         <div
           className="absolute inset-0 -z-10 bg-no-repeat"
           style={{
@@ -38,7 +36,6 @@ export default function DamasDaNightPage() {
           }}
           aria-hidden="true"
         />
-        {/* overlay em gradiente: mais escuro à direita (onde fica o conteúdo) */}
         <div
           className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-r from-black/25 via-black/55 to-black/70"
           aria-hidden="true"
@@ -47,11 +44,9 @@ export default function DamasDaNightPage() {
         <div className="relative z-10 w-full px-2 py-4">
           <SparklesLayer />
 
-          {/* ornamentos de canto */}
           <CornerOrnament className="absolute -top-1 -left-1 w-16 h-16 text-fuchsia-500/50" />
           <CornerOrnament className="absolute -top-1 -right-1 w-16 h-16 text-fuchsia-500/50 scale-x-[-1]" />
 
-          {/* ---------------- Header ---------------- */}
           <header className="relative z-10 text-center pt-8">
             <Image
               src="/images/marca-em-estilo-neon-rosa.webp"
@@ -75,7 +70,6 @@ export default function DamasDaNightPage() {
             </div>
           </header>
 
-          {/* ---------------- Recadinho do Coração ---------------- */}
           <section className="relative z-10 text-center px-2 mt-6">
             <div className="flex items-center justify-center gap-3">
               <EnvelopeHeart className="w-24 h-20 text-fuchsia-400" />
@@ -119,10 +113,8 @@ export default function DamasDaNightPage() {
             </p>
           </section>
 
-          {/* ---------------- Formulário ---------------- */}
           <MessageForm />
 
-          {/* ---------------- Footer ---------------- */}
           <footer className="relative z-10 text-center mt-6 pb-2">
             <OrnamentDivider />
             <p className="flex items-center justify-center gap-2 text-[12px] text-pink-200">

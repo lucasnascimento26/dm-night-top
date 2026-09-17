@@ -44,6 +44,73 @@ body {
   box-shadow: 0 0 25px rgba(255, 79, 216, 0.55);
 }
 
+/* -------------------------------------------------------------------- */
+/*  Loader — estilo minimalista (monograma + fade-in + fade-out)         */
+/* -------------------------------------------------------------------- */
+
+.loader-fade-in {
+  opacity: 0;
+  animation: loader-fade-up 0.9s ease forwards;
+}
+.loader-delay-1 {
+  animation-delay: 0.25s;
+}
+.loader-delay-2 {
+  animation-delay: 0.5s;
+}
+@keyframes loader-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* a linha "desenha" da esquerda pra direita depois do fade */
+.loader-line {
+  transform-origin: center;
+  animation:
+    loader-fade-up 0.9s ease forwards,
+    loader-line-grow 0.9s ease forwards;
+  animation-delay: 0.5s, 0.5s;
+}
+@keyframes loader-line-grow {
+  from {
+    width: 0;
+  }
+  to {
+    width: 4rem;
+  }
+}
+
+/* transição de saída suave (fade-out do loader inteiro) */
+.loader-exit {
+  opacity: 1;
+  transition: opacity 0.8s ease;
+}
+.loader-exit-active {
+  opacity: 0;
+}
+
+/* -------------------------------------------------------------------- */
+/*  Conteúdo da página — fade-in suave logo após o loader sumir          */
+/* -------------------------------------------------------------------- */
+
+.content-fade-in {
+  animation: content-fade-in 0.9s ease forwards;
+}
+@keyframes content-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.001ms !important;
