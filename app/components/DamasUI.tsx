@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
+import { AsYouType } from "libphonenumber-js";
 import { HeartOutline, PencilIcon, ImageIcon, MusicIcon, SendIcon } from "./DamasIcons";
 
 /* -------------------------------------------------------------------- */
@@ -104,30 +105,63 @@ const MAX_PHOTO_SIZE = 15 * 1024 * 1024; // 15MB
 const MAX_MUSIC_SIZE = 20 * 1024 * 1024; // 20MB
 
 // ------------------------------------------------------------------
-// Telefone: aceita colar com ou sem código do país, sempre guarda
-// e envia só DDD + número (10 ou 11 dígitos), sem "+55" na frente.
+// Telefone: sem prefixo fixo. A pessoa digita do jeito que quiser —
+// com "55" na frente ou só DDD+número.
+//
+// Aceita DDD (2 dígitos válidos) + número de 8 OU 9 dígitos:
+//   - 9 dígitos = celular no padrão atual (sempre começa com 9)
+//   - 8 dígitos = formato antigo, pré-2016, ainda usado por muita
+//     gente que nunca atualizou o WhatsApp. Aceitamos por realidade
+//     de uso, mesmo não sendo mais o padrão oficial da Anatel.
 // ------------------------------------------------------------------
 
-// Limpa o que a pessoa digitou/colou e devolve só DDD+número (sem código do país)
-function limparTelefone(valor: string): string {
-  let d = valor.replace(/\D/g, "");
+const DDDS_VALIDOS = new Set([
+  "11","12","13","14","15","16","17","18","19",
+  "21","22","24","27","28",
+  "31","32","33","34","35","37","38",
+  "41","42","43","44","45","46",
+  "47","48","49",
+  "51","53","54","55",
+  "61","62","63","64","65","66","67","68","69",
+  "71","73","74","75","77","79",
+  "81","82","83","84","85","86","87","88","89",
+  "91","92","93","94","95","96","97","98","99",
+]);
 
-  // Se veio com código do país (55 + DDD + número = 12 ou 13 dígitos),
-  // remove o "55" da frente
-  if (d.startsWith("55") && (d.length === 12 || d.length === 13)) {
-    d = d.slice(2);
+// Remove um "55" de código de país, se a pessoa tiver digitado e
+// sobrar mais dígito do que cabe em DDD + número (máx. 11).
+function removerCodigoPaisSeSobrar(digits: string): string {
+  if (digits.length > 11 && digits.startsWith("55")) {
+    return digits.slice(2);
   }
-
-  return d.slice(0, 11); // no máximo DDD + 9 dígitos
+  return digits;
 }
 
-// Formata visualmente enquanto a pessoa digita: (85) 99999-8888
-// (o que é ENVIADO pro servidor são só os dígitos, sem a máscara)
+// Formata visualmente enquanto a pessoa digita, no padrão nacional BR
 function formatarTelefoneVisual(valor: string) {
-  const d = limparTelefone(valor);
-  if (d.length <= 2) return d;
-  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
-  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7, 11)}`;
+  const digits = valor.replace(/\D/g, "").slice(0, 13);
+  const formatter = new AsYouType("BR");
+  return formatter.input(digits);
+}
+
+// Valida e devolve os dígitos nacionais (DDD + número, sem "55").
+// Aceita número de 8 ou 9 dígitos após o DDD. Retorna null se inválido.
+function extrairDigitosNacionais(valor: string): string | null {
+  const digitsBrutos = valor.replace(/\D/g, "");
+  const digits = removerCodigoPaisSeSobrar(digitsBrutos);
+
+  // precisa ser DDD (2) + número (8 ou 9) = 10 ou 11 dígitos
+  if (digits.length !== 10 && digits.length !== 11) return null;
+
+  const ddd = digits.slice(0, 2);
+  if (!DDDS_VALIDOS.has(ddd)) return null;
+
+  const numero = digits.slice(2);
+
+  // celular de 9 dígitos precisa começar com "9"
+  if (numero.length === 9 && numero[0] !== "9") return null;
+
+  return digits;
 }
 
 export function MessageForm() {
@@ -143,6 +177,17 @@ export function MessageForm() {
 
   function handleTelefoneChange(e: React.ChangeEvent<HTMLInputElement>) {
     setTelefone(formatarTelefoneVisual(e.target.value));
+  }
+
+  function handleTelefoneKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Backspace") {
+      const digitosAtuais = telefone.replace(/\D/g, "");
+      if (digitosAtuais.length > 0) {
+        e.preventDefault();
+        const novosDigitos = digitosAtuais.slice(0, -1);
+        setTelefone(formatarTelefoneVisual(novosDigitos));
+      }
+    }
   }
 
   function handleTelefonePaste(e: React.ClipboardEvent<HTMLInputElement>) {
@@ -183,17 +228,13 @@ export function MessageForm() {
       return;
     }
 
-    const digitos = limparTelefone(telefone);
+    const digitos = extrairDigitosNacionais(telefone);
 
-    // WhatsApp = celular brasileiro: DDD (2 dígitos) + 9 dígitos,
-    // sempre começando com "9" logo após o DDD. Total: 11 dígitos.
-    const numeroValido = digitos.length === 11 && digitos[2] === "9";
-
-    if (!numeroValido) {
+    if (!digitos) {
       setErro(
-        digitos.length === 0
+        telefone.trim().length === 0
           ? "Informe o WhatsApp de quem vai receber, com DDD."
-          : "Número incompleto ou inválido. Use o formato (85) 99999-8888."
+          : "Número incompleto ou inválido. Confira o DDD e o número."
       );
       return;
     }
@@ -228,7 +269,7 @@ export function MessageForm() {
           content: trimmed,
           photoUrl,
           musicUrl,
-          numeroDestinatario: digitos, // sempre 10 ou 11 dígitos, sem "55"
+          numeroDestinatario: digitos, // 10 (formato antigo) ou 11 dígitos (atual), sem "55"
         }),
       });
 
@@ -245,9 +286,13 @@ export function MessageForm() {
       if (fotoInputRef.current) fotoInputRef.current.value = "";
       if (musicaInputRef.current) musicaInputRef.current.value = "";
     } catch (err) {
-      console.error(err);
+      console.error("[recado] falhou:", err);
       setStatus("erro");
-      setErro("Não foi possível enviar seu recado. Tente novamente.");
+      setErro(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível enviar seu recado. Tente novamente."
+      );
     }
   }
 
@@ -320,9 +365,10 @@ export function MessageForm() {
             required
             value={telefone}
             onChange={handleTelefoneChange}
+            onKeyDown={handleTelefoneKeyDown}
             onPaste={handleTelefonePaste}
             placeholder="(85) 99999-8888"
-            maxLength={15}
+            maxLength={19}
             className="neon-textarea w-full rounded-2xl border border-fuchsia-500/50 bg-black/40 py-3 px-4 text-base text-purple-50 placeholder-purple-300/50 outline-none transition-shadow focus-visible:border-fuchsia-300 focus-visible:shadow-[0_0_18px_rgba(255,110,199,0.5)] focus-visible:ring-2 focus-visible:ring-fuchsia-300/60"
           />
 
@@ -336,7 +382,7 @@ export function MessageForm() {
           <input
             ref={musicaInputRef}
             type="file"
-            accept="audio/*"
+            accept="audio/*,.opus,.ogg,.m4a,.aac,.flac,.mp3,.wav"
             className="hidden"
             onChange={handleMusicaChange}
           />
