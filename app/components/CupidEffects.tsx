@@ -1,8 +1,3 @@
-"use client";
-
-import { useEffect, useRef } from "react";
-import gsap from "gsap";
-
 function NeonHeart({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="currentColor">
@@ -82,128 +77,50 @@ type FloatItem = {
 
 // ---------- Variante "card": mantida no arquivo, não usada em page.tsx ----------
 const CARD_ITEMS: FloatItem[] = [
-  { Icon: NeonHeart, className: "gsap-cupid-heart w-6 h-6 text-fuchsia-400/35", style: { top: "8%", left: "6%" } },
-  { Icon: NeonHeart, className: "gsap-cupid-heart w-5 h-5 text-pink-400/30", style: { top: "22%", left: "85%" } },
-  { Icon: NeonHeart, className: "gsap-cupid-heart w-5 h-5 text-purple-400/30", style: { top: "48%", left: "4%" } },
-  { Icon: NeonHeart, className: "gsap-cupid-heart w-6 h-6 text-fuchsia-300/28", style: { top: "68%", left: "88%" } },
-  { Icon: NeonHeart, className: "gsap-cupid-heart w-4 h-4 text-pink-300/30", style: { top: "85%", left: "10%" } },
+  { Icon: NeonHeart, className: "w-6 h-6 text-fuchsia-400/35", style: { top: "8%", left: "6%" } },
+  { Icon: NeonHeart, className: "w-5 h-5 text-pink-400/30", style: { top: "22%", left: "85%" } },
+  { Icon: NeonHeart, className: "w-5 h-5 text-purple-400/30", style: { top: "48%", left: "4%" } },
+  { Icon: NeonHeart, className: "w-6 h-6 text-fuchsia-300/28", style: { top: "68%", left: "88%" } },
+  { Icon: NeonHeart, className: "w-4 h-4 text-pink-300/30", style: { top: "85%", left: "10%" } },
 
-  { Icon: CupidBaby, className: "gsap-cupid-arrow w-9 h-9 opacity-25 -rotate-6", style: { top: "15%", left: "68%" } },
-  { Icon: CupidBaby, className: "gsap-cupid-arrow w-8 h-8 opacity-20 rotate-[10deg]", style: { top: "60%", left: "-2%" } },
-  { Icon: CupidBaby, className: "gsap-cupid-arrow w-9 h-9 opacity-25 -rotate-3", style: { top: "90%", left: "58%" } },
+  { Icon: CupidBaby, className: "w-9 h-9 opacity-25 -rotate-6", style: { top: "15%", left: "68%" } },
+  { Icon: CupidBaby, className: "w-8 h-8 opacity-20 rotate-[10deg]", style: { top: "60%", left: "-2%" } },
+  { Icon: CupidBaby, className: "w-9 h-9 opacity-25 -rotate-3", style: { top: "90%", left: "58%" } },
 
-  { Icon: LoveEnvelope, className: "gsap-cupid-envelope w-7 h-6 text-fuchsia-300/28", style: { top: "35%", left: "90%" } },
-  { Icon: LoveEnvelope, className: "gsap-cupid-envelope w-8 h-6 text-pink-300/25", style: { top: "78%", left: "3%" } },
-  { Icon: LoveEnvelope, className: "gsap-cupid-envelope w-6 h-5 text-purple-300/28", style: { top: "5%", left: "45%" } },
+  { Icon: LoveEnvelope, className: "w-7 h-6 text-fuchsia-300/28", style: { top: "35%", left: "90%" } },
+  { Icon: LoveEnvelope, className: "w-8 h-6 text-pink-300/25", style: { top: "78%", left: "3%" } },
+  { Icon: LoveEnvelope, className: "w-6 h-5 text-purple-300/28", style: { top: "5%", left: "45%" } },
 ];
 
 // ---------- Variante "page": fundo externo (área escura fora do cartão) ----------
 const PAGE_ITEMS: FloatItem[] = [
-  { Icon: NeonHeart, className: "gsap-cupid-heart w-8 h-8 text-fuchsia-400/25", style: { top: "6%", left: "8%" } },
-  { Icon: NeonHeart, className: "gsap-cupid-heart w-6 h-6 text-pink-400/22", style: { top: "18%", left: "88%" } },
-  { Icon: NeonHeart, className: "gsap-cupid-heart w-9 h-9 text-purple-400/22", style: { top: "38%", left: "4%" } },
-  { Icon: NeonHeart, className: "gsap-cupid-heart w-7 h-7 text-fuchsia-300/22", style: { top: "55%", left: "92%" } },
-  { Icon: NeonHeart, className: "gsap-cupid-heart w-8 h-8 text-pink-300/22", style: { top: "78%", left: "6%" } },
-  { Icon: NeonHeart, className: "gsap-cupid-heart w-6 h-6 text-fuchsia-400/18", style: { top: "88%", left: "90%" } },
+  { Icon: NeonHeart, className: "w-8 h-8 text-fuchsia-400/25", style: { top: "6%", left: "8%" } },
+  { Icon: NeonHeart, className: "w-6 h-6 text-pink-400/22", style: { top: "18%", left: "88%" } },
+  { Icon: NeonHeart, className: "w-9 h-9 text-purple-400/22", style: { top: "38%", left: "4%" } },
+  { Icon: NeonHeart, className: "w-7 h-7 text-fuchsia-300/22", style: { top: "55%", left: "92%" } },
+  { Icon: NeonHeart, className: "w-8 h-8 text-pink-300/22", style: { top: "78%", left: "6%" } },
+  { Icon: NeonHeart, className: "w-6 h-6 text-fuchsia-400/18", style: { top: "88%", left: "90%" } },
 
-  { Icon: CupidBaby, className: "gsap-cupid-arrow w-14 h-14 opacity-20 -rotate-6", style: { top: "12%", left: "70%" } },
-  { Icon: CupidBaby, className: "gsap-cupid-arrow w-12 h-12 opacity-[0.18] rotate-[8deg]", style: { top: "45%", left: "0%" } },
-  { Icon: CupidBaby, className: "gsap-cupid-arrow w-14 h-14 opacity-20 -rotate-3", style: { top: "68%", left: "78%" } },
-  { Icon: CupidBaby, className: "gsap-cupid-arrow w-11 h-11 opacity-[0.15] rotate-[6deg]", style: { top: "92%", left: "2%" } },
+  { Icon: CupidBaby, className: "w-14 h-14 opacity-20 -rotate-6", style: { top: "12%", left: "70%" } },
+  { Icon: CupidBaby, className: "w-12 h-12 opacity-[0.18] rotate-[8deg]", style: { top: "45%", left: "0%" } },
+  { Icon: CupidBaby, className: "w-14 h-14 opacity-20 -rotate-3", style: { top: "68%", left: "78%" } },
+  { Icon: CupidBaby, className: "w-11 h-11 opacity-[0.15] rotate-[6deg]", style: { top: "92%", left: "2%" } },
 
-  { Icon: LoveEnvelope, className: "gsap-cupid-envelope w-9 h-7 text-fuchsia-300/22", style: { top: "28%", left: "94%" } },
-  { Icon: LoveEnvelope, className: "gsap-cupid-envelope w-10 h-7 text-pink-300/20", style: { top: "62%", left: "2%" } },
-  { Icon: LoveEnvelope, className: "gsap-cupid-envelope w-7 h-6 text-purple-300/22", style: { top: "3%", left: "40%" } },
-  { Icon: LoveEnvelope, className: "gsap-cupid-envelope w-8 h-6 text-pink-400/20", style: { top: "80%", left: "44%" } },
+  { Icon: LoveEnvelope, className: "w-9 h-7 text-fuchsia-300/22", style: { top: "28%", left: "94%" } },
+  { Icon: LoveEnvelope, className: "w-10 h-7 text-pink-300/20", style: { top: "62%", left: "2%" } },
+  { Icon: LoveEnvelope, className: "w-7 h-6 text-purple-300/22", style: { top: "3%", left: "40%" } },
+  { Icon: LoveEnvelope, className: "w-8 h-6 text-pink-400/20", style: { top: "80%", left: "44%" } },
 ];
-
-function animate(root: HTMLDivElement, variant: "card" | "page") {
-  const isSoft = variant === "page";
-  const glowIntensity = isSoft ? 0.4 : 0.55;
-
-  const ctx = gsap.context(() => {
-    gsap.utils.toArray<HTMLElement>(".gsap-cupid-heart", root).forEach((el, i) => {
-      gsap.to(el, {
-        y: (isSoft ? -8 : -14) - Math.random() * (isSoft ? 6 : 10),
-        x: (Math.random() - 0.5) * (isSoft ? 6 : 10),
-        rotation: (Math.random() - 0.5) * (isSoft ? 8 : 14),
-        duration: (isSoft ? 6 : 4) + Math.random() * 2,
-        ease: "sine.inOut",
-        repeat: -1,
-        yoyo: true,
-        delay: i * 0.3,
-      });
-
-      gsap.to(el, {
-        filter: `drop-shadow(0 0 ${6 * glowIntensity}px rgba(255,110,199,${0.9 * glowIntensity})) drop-shadow(0 0 ${14 * glowIntensity}px rgba(255,47,208,${0.7 * glowIntensity}))`,
-        duration: 2.6 + Math.random(),
-        ease: "sine.inOut",
-        repeat: -1,
-        yoyo: true,
-        delay: i * 0.2,
-      });
-    });
-
-    gsap.utils.toArray<HTMLElement>(".gsap-cupid-arrow", root).forEach((el, i) => {
-      gsap.to(el, {
-        y: (isSoft ? -6 : -10) - Math.random() * 6,
-        x: (Math.random() - 0.5) * (isSoft ? 6 : 10),
-        rotation: (Math.random() - 0.5) * 6,
-        duration: (isSoft ? 5 : 3.5) + Math.random() * 1.5,
-        ease: "sine.inOut",
-        repeat: -1,
-        yoyo: true,
-        delay: i * 0.4,
-      });
-    });
-
-    gsap.utils.toArray<HTMLElement>(".gsap-cupid-envelope", root).forEach((el, i) => {
-      gsap.to(el, {
-        y: isSoft ? -5 : -9,
-        rotation: (Math.random() - 0.5) * (isSoft ? 4 : 8),
-        duration: (isSoft ? 5.5 : 4) + Math.random() * 1.5,
-        ease: "sine.inOut",
-        repeat: -1,
-        yoyo: true,
-        delay: i * 0.35,
-      });
-
-      gsap.to(el, {
-        filter: `drop-shadow(0 0 ${6 * glowIntensity}px rgba(255,110,199,${0.8 * glowIntensity})) drop-shadow(0 0 ${12 * glowIntensity}px rgba(255,47,208,${0.5 * glowIntensity}))`,
-        duration: 2.6,
-        ease: "sine.inOut",
-        repeat: -1,
-        yoyo: true,
-        delay: i * 0.3,
-      });
-    });
-  }, root);
-
-  return ctx;
-}
 
 export default function CupidEffectsLayer({
   variant = "card",
 }: {
   variant?: "card" | "page";
 }) {
-  const rootRef = useRef<HTMLDivElement>(null);
   const items = variant === "page" ? PAGE_ITEMS : CARD_ITEMS;
-
-  useEffect(() => {
-    const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    ).matches;
-    const root = rootRef.current;
-    if (!root || prefersReducedMotion) return;
-
-    const ctx = animate(root, variant);
-    return () => ctx.revert();
-  }, [variant]);
 
   return (
     <div
-      ref={rootRef}
       className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
       aria-hidden="true"
     >
