@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { recadosAnonimos } from "@/lib/db/schema";
+import { verificarConteudo } from "@/lib/moderation";
+import { verificarConteudoIA } from "@/lib/ai-moderation";
+import { verificarRateLimit, extrairIp } from "@/lib/rate-limit";
 
 // Mesma lógica usada no bot (confissoesHandler.js → extrairNumero),
 // pra garantir que o formato salvo aqui seja o mesmo que o bot espera.
@@ -40,11 +43,57 @@ export async function POST(request: Request) {
       );
     }
 
+    const conteudoLimpo = content.trim();
+
+    // --- Camada 1: filtro de lista de palavras (rápido, sem depender de rede) ---
+    const moderacaoLista = verificarConteudo(conteudoLimpo);
+    if (moderacaoLista.bloqueado) {
+      return NextResponse.json(
+        {
+          error:
+            "Sua mensagem contém termos não permitidos. Reescreva o recado sem ofensas, ameaças ou conteúdo impróprio.",
+        },
+        { status: 422 }
+      );
+    }
+
+    // --- Camada 2: moderação por IA (OpenAI Moderation, gratuita) ---
+    // Pega o que a lista de palavras não cobre: erro de digitação proposital,
+    // indiretas, gírias novas, etc. Se a API falhar ou não estiver
+    // configurada, deixa passar (fail-open) — o recado ainda cai na fila
+    // de aprovação manual (status "pendente").
+    const moderacaoIA = await verificarConteudoIA(conteudoLimpo);
+    if (moderacaoIA.bloqueado) {
+      return NextResponse.json(
+        {
+          error:
+            "Sua mensagem foi identificada como conteúdo impróprio. Reescreva o recado.",
+        },
+        { status: 422 }
+      );
+    }
+
+    // --- Rate limiting ---------------------------------------------------
+    const ip = extrairIp(request);
+    const rateLimit = await verificarRateLimit({
+      ip,
+      numeroDestinatario: numeroNormalizado,
+    });
+
+    if (!rateLimit.permitido) {
+      return NextResponse.json({ error: rateLimit.motivo }, { status: 429 });
+    }
+
+    // --- Salva como pendente, aguardando aprovação manual -----------------
     await db.insert(recadosAnonimos).values({
-      content: content.trim(),
+      content: conteudoLimpo,
       photoUrl: photoUrl || null,
       musicUrl: musicUrl || null,
       numeroDestinatario: numeroNormalizado,
+      status: "pendente",
+      ip: ip || null,
+      sinalizado: false,
+      termosDetectados: null,
     });
 
     return NextResponse.json({ success: true });

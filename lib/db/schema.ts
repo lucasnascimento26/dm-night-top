@@ -253,6 +253,10 @@ export const recadosAnonimos = pgTable("recados_anonimos", {
 	photoUrl: text("photo_url"),
 	musicUrl: text("music_url"),
 	numeroDestinatario: varchar("numero_destinatario", { length: 20 }),
+	status: varchar("status", { length: 20 }).default('pendente').notNull(),
+	ip: text("ip"),
+	sinalizado: boolean("sinalizado").default(false).notNull(),
+	termosDetectados: text("termos_detectados"),
 	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
 });
 
