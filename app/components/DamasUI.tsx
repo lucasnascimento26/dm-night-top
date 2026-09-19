@@ -2,7 +2,6 @@
 
 import { useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
-import { AsYouType } from "libphonenumber-js";
 import { HeartOutline, PencilIcon, ImageIcon, MusicIcon, SendIcon } from "./DamasIcons";
 
 /* -------------------------------------------------------------------- */
@@ -137,11 +136,38 @@ function removerCodigoPaisSeSobrar(digits: string): string {
   return digits;
 }
 
-// Formata visualmente enquanto a pessoa digita, no padrão nacional BR
+// Formata visualmente enquanto a pessoa digita, no padrão nacional BR.
+//
+// Feito à mão (sem depender de AsYouType/libphonenumber-js) porque a lib
+// tenta casar com um número "real" válido e, para números de 8 dígitos
+// (formato antigo que aceitamos), às vezes aplicava um agrupamento errado
+// (ex.: "67865-465" em vez de "6786-5465").
+//
+// Regra usada aqui: se o primeiro dígito depois do DDD for "9", tratamos
+// como celular (9 dígitos, agrupa 5-4). Caso contrário, tratamos como
+// fixo/antigo (8 dígitos, agrupa 4-4).
 function formatarTelefoneVisual(valor: string) {
-  const digits = valor.replace(/\D/g, "").slice(0, 13);
-  const formatter = new AsYouType("BR");
-  return formatter.input(digits);
+  const digitsBrutos = valor.replace(/\D/g, "").slice(0, 13);
+  const digits = removerCodigoPaisSeSobrar(digitsBrutos);
+
+  if (digits.length === 0) return "";
+
+  const ddd = digits.slice(0, 2);
+  const resto = digits.slice(2);
+
+  let saida = `(${ddd}`;
+  if (digits.length <= 2) return saida;
+  saida += ") ";
+
+  const isProvavelCelular = resto[0] === "9";
+
+  if (isProvavelCelular) {
+    if (resto.length <= 5) return saida + resto;
+    return saida + resto.slice(0, 5) + "-" + resto.slice(5, 9);
+  } else {
+    if (resto.length <= 4) return saida + resto;
+    return saida + resto.slice(0, 4) + "-" + resto.slice(4, 8);
+  }
 }
 
 // Valida e devolve os dígitos nacionais (DDD + número, sem "55").
