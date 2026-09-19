@@ -11,10 +11,10 @@ import { and, eq, gte, sql } from "drizzle-orm";
 // pro volume de um formulário de recados; se o tráfego crescer muito,
 // vale migrar pra Upstash (mais rápido, tira carga do Postgres).
 
-const LIMITE_POR_NUMERO = 3; // no máximo 3 recados para o mesmo destinatário
+const LIMITE_POR_NUMERO = 10; // no máximo 10 recados para o mesmo destinatário
 const JANELA_NUMERO_MS = 24 * 60 * 60 * 1000; // em 24h
 
-const LIMITE_POR_IP = 5; // no máximo 5 recados enviados do mesmo IP
+const LIMITE_POR_IP = 10; // no máximo 10 recados enviados do mesmo IP
 const JANELA_IP_MS = 60 * 60 * 1000; // em 1h
 
 export interface ResultadoRateLimit {

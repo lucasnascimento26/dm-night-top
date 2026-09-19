@@ -140,12 +140,14 @@ function removerCodigoPaisSeSobrar(digits: string): string {
 //
 // Feito à mão (sem depender de AsYouType/libphonenumber-js) porque a lib
 // tenta casar com um número "real" válido e, para números de 8 dígitos
-// (formato antigo que aceitamos), às vezes aplicava um agrupamento errado
-// (ex.: "67865-465" em vez de "6786-5465").
+// (formato antigo que aceitamos), às vezes aplicava um agrupamento errado.
 //
-// Regra usada aqui: se o primeiro dígito depois do DDD for "9", tratamos
-// como celular (9 dígitos, agrupa 5-4). Caso contrário, tratamos como
-// fixo/antigo (8 dígitos, agrupa 4-4).
+// Regra: o agrupamento depende da QUANTIDADE de dígitos depois do DDD,
+// não do primeiro dígito. Números de 8 dígitos (formato antigo) também
+// podem começar com 9, então olhar só o primeiro dígito gera erro.
+//   - 9 dígitos -> 5-4  (ex.: 99213-9262)
+//   - até 8     -> 4-4  (ex.: 9213-9262)
+// Ao digitar o 9º dígito, o hífen migra sozinho da posição 4 para a 5.
 function formatarTelefoneVisual(valor: string) {
   const digitsBrutos = valor.replace(/\D/g, "").slice(0, 13);
   const digits = removerCodigoPaisSeSobrar(digitsBrutos);
@@ -153,21 +155,20 @@ function formatarTelefoneVisual(valor: string) {
   if (digits.length === 0) return "";
 
   const ddd = digits.slice(0, 2);
-  const resto = digits.slice(2);
+  const resto = digits.slice(2, 11); // no máximo 9 dígitos após o DDD
 
   let saida = `(${ddd}`;
   if (digits.length <= 2) return saida;
   saida += ") ";
 
-  const isProvavelCelular = resto[0] === "9";
-
-  if (isProvavelCelular) {
-    if (resto.length <= 5) return saida + resto;
-    return saida + resto.slice(0, 5) + "-" + resto.slice(5, 9);
-  } else {
-    if (resto.length <= 4) return saida + resto;
-    return saida + resto.slice(0, 4) + "-" + resto.slice(4, 8);
+  // 9 dígitos = celular atual (5-4)
+  if (resto.length === 9) {
+    return saida + resto.slice(0, 5) + "-" + resto.slice(5);
   }
+
+  // até 8 dígitos = 4-4
+  if (resto.length <= 4) return saida + resto;
+  return saida + resto.slice(0, 4) + "-" + resto.slice(4);
 }
 
 // Valida e devolve os dígitos nacionais (DDD + número, sem "55").
