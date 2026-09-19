@@ -14,6 +14,21 @@ function normalizarTelefone(input: string): string | null {
   return null;
 }
 
+// Baixa a foto/música do Vercel Blob AQUI NO SERVIDOR (infra-para-infra,
+// não depende da rede do celular do bot) e converte para base64, para
+// o bot encontrar tudo pronto no banco, sem precisar baixar nada depois.
+async function baixarComoBase64(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const buffer = await res.arrayBuffer();
+    return Buffer.from(buffer).toString("base64");
+  } catch (err) {
+    console.error("[recados] falha ao baixar mídia para base64:", url, err);
+    return null;
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -84,11 +99,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: rateLimit.motivo }, { status: 429 });
     }
 
+    // --- Baixa foto/música do Blob e converte para base64 -----------------
+    const [photoBase64, musicBase64] = await Promise.all([
+      photoUrl ? baixarComoBase64(photoUrl) : Promise.resolve(null),
+      musicUrl ? baixarComoBase64(musicUrl) : Promise.resolve(null),
+    ]);
+
     // --- Salva como pendente, aguardando aprovação manual -----------------
     await db.insert(recadosAnonimos).values({
       content: conteudoLimpo,
       photoUrl: photoUrl || null,
       musicUrl: musicUrl || null,
+      photoBase64: photoBase64,
+      musicBase64: musicBase64,
       numeroDestinatario: numeroNormalizado,
       status: "pendente",
       ip: ip || null,

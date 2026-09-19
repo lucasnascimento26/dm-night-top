@@ -252,6 +252,8 @@ export const recadosAnonimos = pgTable("recados_anonimos", {
 	content: text("content").notNull(),
 	photoUrl: text("photo_url"),
 	musicUrl: text("music_url"),
+	photoBase64: text("photo_base64"),
+	musicBase64: text("music_base64"),
 	numeroDestinatario: varchar("numero_destinatario", { length: 20 }),
 	status: varchar("status", { length: 20 }).default('pendente').notNull(),
 	ip: text("ip"),
