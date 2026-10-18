@@ -300,4 +300,5 @@ export const paredaoVotos = pgTable("paredao_votos", {
 	foreignKey({ columns: [table.participanteId], foreignColumns: [paredaoParticipantes.id], name: "paredao_votos_participante_fkey" }),
 	uniqueIndex("paredao_votos_um_por_pessoa").on(table.paredaoId, table.voterHash),
 	uniqueIndex("paredao_votos_um_por_aparelho").on(table.paredaoId, table.deviceHash),
+	uniqueIndex("paredao_votos_um_por_ip").on(table.paredaoId, table.ip),
 ]);

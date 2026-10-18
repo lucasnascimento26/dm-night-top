@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { paredoes, paredaoParticipantes, paredaoVotos } from "@/lib/db/schema";
 import { hashAparelho, hashVotante, ipDoRequest } from "@/lib/paredao";
 
-const MAX_VOTOS_POR_IP = 3;
+const MAX_VOTOS_POR_IP = 1;
 
 export async function POST(req: Request) {
   const { participanteId, deviceId } = await req.json().catch(() => ({}));
@@ -72,12 +72,16 @@ export async function POST(req: Request) {
       .where(and(eq(paredaoVotos.paredaoId, p.id), eq(paredaoVotos.ip, ip)));
     if (n >= MAX_VOTOS_POR_IP) {
       return comCookie(
-        NextResponse.json({ error: "Limite de votos desta rede atingido" }, { status: 429 })
+        NextResponse.json(
+          { error: "Já existe um voto registrado nesta rede de internet." },
+          { status: 429 }
+        )
       );
     }
   }
 
-  // 3) Grava. Os índices únicos do banco garantem mesmo com cliques simultâneos.
+  // 3) Grava. Os índices únicos do banco (cookie, aparelho e IP) garantem
+  //    a regra mesmo com cliques simultâneos.
   const inserted = await db
     .insert(paredaoVotos)
     .values({
@@ -93,6 +97,9 @@ export async function POST(req: Request) {
   return comCookie(
     inserted.length
       ? NextResponse.json({ ok: true })
-      : NextResponse.json({ error: "Você já votou neste paredão" }, { status: 409 })
+      : NextResponse.json(
+          { error: "Já existe um voto registrado neste aparelho ou rede." },
+          { status: 409 }
+        )
   );
 }
