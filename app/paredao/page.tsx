@@ -19,8 +19,6 @@ const INFO_VOTO = {
 
 type Participante = {
   nome: string;
-  // Pequena descrição que aparece no card (mantenha curta, ~50 caracteres).
-  descricao: string;
   porcentagem: number;
   // Coloque as fotos em public/images/participantes/ e preencha aqui.
   // Ex.: "/images/participantes/jessica-participante-damas-da-night.webp"
@@ -28,10 +26,10 @@ type Participante = {
 };
 
 const participantes: Participante[] = [
-  { nome: "Jéssica", descricao: "Topa tudo, até o que não deveria.", porcentagem: 32.48, foto: null },
-  { nome: "Rafael", descricao: "Chega pra uma e sai na saideira.", porcentagem: 28.76, foto: null },
-  { nome: "Camila", descricao: "Dança a noite inteira sem pedir arrego.", porcentagem: 22.31, foto: null },
-  { nome: "Thiago", descricao: "Calmo, mas é o último a ir embora.", porcentagem: 16.93, foto: null },
+  { nome: "Jéssica", porcentagem: 32.48, foto: null },
+  { nome: "Rafael", porcentagem: 28.76, foto: null },
+  { nome: "Camila", porcentagem: 22.31, foto: null },
+  { nome: "Thiago", porcentagem: 16.93, foto: null },
 ];
 
 const lider = participantes.reduce((a, b) => (b.porcentagem > a.porcentagem ? b : a)).nome;
@@ -85,7 +83,6 @@ const css = `
   .dn-card-foto { aspect-ratio: 4 / 4.2 !important; }
   .dn-card-corpo { padding: 1.25rem !important; padding-top: 1rem !important; }
   .dn-card-nome { font-size: 1.75rem !important; }
-  .dn-card-desc { font-size: .95rem !important; margin-top: .35rem !important; }
   .dn-card-pct { font-size: 2.25rem !important; margin-top: .6rem !important; }
   .dn-card-barra { height: .75rem !important; }
   .dn-card-btn { min-height: 3.25rem !important; font-size: .95rem !important; margin-top: 1.1rem !important; }
@@ -530,7 +527,6 @@ export default function ParedaoPage() {
 
                 <div className="dn-card-corpo p-3 pt-2.5 sm:p-4 sm:pt-3">
                   <h2 className="dn-card-nome text-lg font-bold leading-tight sm:text-2xl">{p.nome}</h2>
-                  <p className="dn-card-desc mt-1 text-xs leading-snug text-violet-200/80 sm:text-sm">{p.descricao}</p>
                   <p className="dn-card-pct mt-1.5 text-2xl font-bold tabular-nums sm:mt-2 sm:text-3xl">
                     {p.porcentagem.toFixed(2).replace(".", ",")}%
                   </p>
