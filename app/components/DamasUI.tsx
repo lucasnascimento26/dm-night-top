@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import { HeartOutline, PencilIcon, ImageIcon, MusicIcon, SendIcon } from "./DamasIcons";
 
@@ -27,12 +27,14 @@ function IconButton({
   onClick,
   active,
   fileName,
+  previewUrl,
 }: {
   icon: React.ReactNode;
   label: string;
   onClick?: () => void;
   active?: boolean;
   fileName?: string | null;
+  previewUrl?: string | null;
 }) {
   return (
     <button
@@ -43,15 +45,20 @@ function IconButton({
     >
       <span
         aria-hidden="true"
-        className={`flex h-14 w-14 items-center justify-center rounded-full border transition-transform duration-200 group-hover:scale-110 group-active:scale-95 ${
+        className={`flex ${previewUrl ? "h-20 w-20" : "h-14 w-14"} overflow-hidden items-center justify-center rounded-full border transition-transform duration-200 group-hover:scale-110 group-active:scale-95 ${
           active
             ? "border-fuchsia-300 text-fuchsia-200 shadow-[0_0_18px_rgba(255,110,199,0.75)]"
             : "border-fuchsia-400/50 text-fuchsia-300 shadow-[0_0_10px_rgba(255,110,199,0.35)] group-hover:shadow-[0_0_18px_rgba(255,110,199,0.65)]"
         }`}
       >
-        {icon}
+        {previewUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={previewUrl} alt="" className="h-full w-full object-cover" />
+        ) : (
+          icon
+        )}
       </span>
-      <span className="text-[11px] leading-tight text-center max-w-[80px] truncate">
+      <span className="text-base leading-tight text-center max-w-[130px] break-words line-clamp-3">
         {fileName ? fileName : label}
       </span>
     </button>
@@ -201,6 +208,26 @@ export function MessageForm() {
 
   const fotoInputRef = useRef<HTMLInputElement>(null);
   const musicaInputRef = useRef<HTMLInputElement>(null);
+  const mensagemRef = useRef<HTMLTextAreaElement>(null);
+
+  // Miniatura da foto escolhida
+  const fotoPreview = useMemo(
+    () => (foto ? URL.createObjectURL(foto) : null),
+    [foto]
+  );
+  useEffect(() => {
+    return () => {
+      if (fotoPreview) URL.revokeObjectURL(fotoPreview);
+    };
+  }, [fotoPreview]);
+
+  // Faz a caixa crescer sozinha conforme a pessoa escreve (estilo WhatsApp)
+  useEffect(() => {
+    const el = mensagemRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [mensagem]);
 
   function handleTelefoneChange(e: React.ChangeEvent<HTMLInputElement>) {
     setTelefone(formatarTelefoneVisual(e.target.value));
@@ -325,7 +352,7 @@ export function MessageForm() {
 
   return (
     <section
-      className="relative z-10 mt-7 rounded-[2rem] neon-card-border px-6 py-7"
+      className="relative z-10 mt-7 rounded-[2rem] neon-card-border px-4 py-7"
       aria-labelledby="recado-heading"
     >
       <HeartOutline
@@ -353,35 +380,43 @@ export function MessageForm() {
           <button
             type="button"
             onClick={() => setStatus("idle")}
-            className="text-sm text-purple-200 underline underline-offset-4"
+            className="text-base text-purple-200 underline underline-offset-4"
           >
             Enviar outro recado
           </button>
         </div>
       ) : (
         <form onSubmit={handleSubmit}>
-          <label htmlFor="mensagem" className="block text-[15px] text-purple-100/90 mb-2">
+          <label htmlFor="mensagem" className="block text-xl text-purple-100 mb-2">
             Escreva sua mensagem
           </label>
 
           <div className="relative">
             <PencilIcon
-              className="absolute left-3 top-3 w-4 h-4 text-purple-300/80"
+              className="absolute left-3 top-4 w-5 h-5 text-purple-300/80"
               aria-hidden="true"
             />
             <textarea
               id="mensagem"
               name="mensagem"
-              rows={4}
+              ref={mensagemRef}
+              style={{
+                backgroundImage:
+                  "linear-gradient(rgba(0,0,0,0.25), rgba(0,0,0,0.25)), url('/images/back-text.webp')",
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                backgroundRepeat: "no-repeat",
+              }}
+              rows={10}
               required
               value={mensagem}
               onChange={(e) => setMensagem(e.target.value)}
               placeholder={"Digite aqui o seu recadinho...\n(sem se identificar)"}
-              className="neon-textarea w-full resize-none rounded-2xl border border-fuchsia-500/50 bg-black/40 py-3 pl-9 pr-3 text-base text-purple-50 placeholder-purple-300/50 outline-none transition-shadow focus-visible:border-fuchsia-300 focus-visible:shadow-[0_0_18px_rgba(255,110,199,0.5)] focus-visible:ring-2 focus-visible:ring-fuchsia-300/60"
+              className="neon-textarea w-full min-h-[340px] max-h-[75vh] overflow-y-auto resize-none rounded-2xl border border-fuchsia-500/50 py-4 pl-10 pr-4 text-[22px] leading-relaxed text-purple-50 placeholder-purple-300/70 outline-none transition-shadow focus-visible:border-fuchsia-300 focus-visible:shadow-[0_0_18px_rgba(255,110,199,0.5)] focus-visible:ring-2 focus-visible:ring-fuchsia-300/60"
             />
           </div>
 
-          <label htmlFor="telefone" className="block text-[15px] text-purple-100/90 mt-5 mb-2">
+          <label htmlFor="telefone" className="block text-xl text-purple-100 mt-5 mb-2">
             WhatsApp de quem vai receber (com DDD)
           </label>
           <input
@@ -396,7 +431,7 @@ export function MessageForm() {
             onPaste={handleTelefonePaste}
             placeholder="(85) 99999-8888"
             maxLength={19}
-            className="neon-textarea w-full rounded-2xl border border-fuchsia-500/50 bg-black/40 py-3 px-4 text-base text-purple-50 placeholder-purple-300/50 outline-none transition-shadow focus-visible:border-fuchsia-300 focus-visible:shadow-[0_0_18px_rgba(255,110,199,0.5)] focus-visible:ring-2 focus-visible:ring-fuchsia-300/60"
+            className="neon-textarea w-full rounded-2xl border border-fuchsia-500/50 bg-black/40 py-4 px-4 text-[22px] text-purple-50 placeholder-purple-300/70 outline-none transition-shadow focus-visible:border-fuchsia-300 focus-visible:shadow-[0_0_18px_rgba(255,110,199,0.5)] focus-visible:ring-2 focus-visible:ring-fuchsia-300/60"
           />
 
           <input
@@ -420,6 +455,7 @@ export function MessageForm() {
               label="Anexar foto"
               active={!!foto}
               fileName={foto?.name}
+              previewUrl={fotoPreview}
               onClick={() => fotoInputRef.current?.click()}
             />
             <IconButton
@@ -432,7 +468,7 @@ export function MessageForm() {
           </div>
 
           {erro && (
-            <p className="mt-4 text-center text-sm text-red-300">{erro}</p>
+            <p className="mt-4 text-center text-lg text-red-300">{erro}</p>
           )}
 
           <button

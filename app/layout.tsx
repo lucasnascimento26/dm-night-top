@@ -14,7 +14,7 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "Damas da Night — Recadinho do Coração",
+  title: "Damas da Night",
   description:
     "Mande sua mensagem anônima: um desabafo, uma indireta, um elogio ou apenas um pensamento.",
 };
@@ -26,7 +26,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={`${greatVibes.variable} ${montserrat.variable} antialiased`}>
+      <body
+        className={`${greatVibes.variable} ${montserrat.variable} font-[family-name:var(--font-montserrat)] antialiased`}
+      >
         {children}
       </body>
     </html>
