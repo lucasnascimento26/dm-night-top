@@ -264,3 +264,40 @@ export const recadosAnonimos = pgTable("recados_anonimos", {
 
 export type RecadoAnonimo = typeof recadosAnonimos.$inferSelect;
 export type NewRecadoAnonimo = typeof recadosAnonimos.$inferInsert;
+
+/* -------------------------------------------------------------------- */
+/*  Paredão: votação do site                                              */
+/* -------------------------------------------------------------------- */
+
+export const paredoes = pgTable("paredoes", {
+	id: serial("id").primaryKey().notNull(),
+	titulo: text("titulo").notNull(),
+	encerraEm: timestamp("encerra_em", { withTimezone: true, mode: 'date' }).notNull(),
+	ativo: boolean("ativo").default(true).notNull(),
+	criadoEm: timestamp("criado_em", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+});
+
+export const paredaoParticipantes = pgTable("paredao_participantes", {
+	id: serial("id").primaryKey().notNull(),
+	paredaoId: integer("paredao_id").notNull(),
+	nome: text("nome").notNull(),
+	fotoUrl: text("foto_url"),
+	ordem: integer("ordem").default(0).notNull(),
+}, (table) => [
+	foreignKey({ columns: [table.paredaoId], foreignColumns: [paredoes.id], name: "paredao_participantes_paredao_fkey" }),
+]);
+
+export const paredaoVotos = pgTable("paredao_votos", {
+	id: serial("id").primaryKey().notNull(),
+	paredaoId: integer("paredao_id").notNull(),
+	participanteId: integer("participante_id").notNull(),
+	voterHash: text("voter_hash").notNull(),
+	deviceHash: text("device_hash"),
+	ip: text("ip"),
+	criadoEm: timestamp("criado_em", { withTimezone: true, mode: 'date' }).defaultNow().notNull(),
+}, (table) => [
+	foreignKey({ columns: [table.paredaoId], foreignColumns: [paredoes.id], name: "paredao_votos_paredao_fkey" }),
+	foreignKey({ columns: [table.participanteId], foreignColumns: [paredaoParticipantes.id], name: "paredao_votos_participante_fkey" }),
+	uniqueIndex("paredao_votos_um_por_pessoa").on(table.paredaoId, table.voterHash),
+	uniqueIndex("paredao_votos_um_por_aparelho").on(table.paredaoId, table.deviceHash),
+]);

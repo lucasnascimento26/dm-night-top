@@ -1,11 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Loader from "../components/Loader";
-
-// Data de encerramento da votação. Ajuste quando quiser.
-const FIM_DA_VOTACAO = new Date("2026-10-18T06:00:00-03:00").getTime();
 
 // Textos das informações.
 const INFO_PAREDAO = {
@@ -18,21 +15,21 @@ const INFO_VOTO = {
 };
 
 type Participante = {
+  id: number;
   nome: string;
   porcentagem: number;
-  // Coloque as fotos em public/images/participantes/ e preencha aqui.
-  // Ex.: "/images/participantes/jessica-participante-damas-da-night.webp"
+  // Coloque as fotos em public/images/participantes/ e preencha a coluna foto_url no banco.
   foto: string | null;
 };
 
-const participantes: Participante[] = [
-  { nome: "Jéssica", porcentagem: 32.48, foto: null },
-  { nome: "Rafael", porcentagem: 28.76, foto: null },
-  { nome: "Camila", porcentagem: 22.31, foto: null },
-  { nome: "Thiago", porcentagem: 16.93, foto: null },
-];
-
-const lider = participantes.reduce((a, b) => (b.porcentagem > a.porcentagem ? b : a)).nome;
+type DadosParedao = {
+  encerraEm: string;
+  agora: string;
+  encerrado: boolean;
+  totalVotos: number;
+  participantes: Participante[];
+  meuVoto: number | null;
+};
 
 const css = `
 @keyframes dn-twinkle { 0%,100% { opacity:.15; transform:scale(.55); } 50% { opacity:1; transform:scale(1); } }
@@ -324,33 +321,96 @@ function HeroDesktop() {
   );
 }
 
-/* ---------- Contagem regressiva ---------- */
-function useContagem() {
-  const [restante, setRestante] = useState<number | null>(null);
+/* ---------- Contagem regressiva (usa a hora do servidor) ---------- */
+function useContagem(encerraEm: string | null, offset: number) {
+  const [restante, setRestante] = useState(0);
 
   useEffect(() => {
-    const tick = () => setRestante(Math.max(0, FIM_DA_VOTACAO - Date.now()));
+    if (!encerraEm) return;
+    const fim = new Date(encerraEm).getTime();
+    const tick = () => setRestante(Math.max(0, fim - (Date.now() + offset)));
     tick();
     // A tela só mostra dias/horas/minutos, então 1 atualização por 30s basta.
     const id = setInterval(tick, 30_000);
     return () => clearInterval(id);
-  }, []);
+  }, [encerraEm, offset]);
 
-  const total = restante ?? 0;
   const pad = (n: number) => String(n).padStart(2, "0");
   return {
-    dias: pad(Math.floor(total / 86_400_000)),
-    horas: pad(Math.floor((total % 86_400_000) / 3_600_000)),
-    min: pad(Math.floor((total % 3_600_000) / 60_000)),
+    dias: pad(Math.floor(restante / 86_400_000)),
+    horas: pad(Math.floor((restante % 86_400_000) / 3_600_000)),
+    min: pad(Math.floor((restante % 3_600_000) / 60_000)),
+    fechado: encerraEm !== null && restante === 0,
   };
 }
 
 /* ---------- Página ---------- */
 export default function ParedaoPage() {
-  const { dias, horas, min } = useContagem();
-  const [votado, setVotado] = useState<string | null>(null);
+  const [dados, setDados] = useState<DadosParedao | null>(null);
+  const [offset, setOffset] = useState(0); // relógio do servidor - relógio do cliente
+  const [msg, setMsg] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [deviceId, setDeviceId] = useState<string | null>(null); // impressão digital do aparelho
+  const { dias, horas, min, fechado } = useContagem(dados?.encerraEm ?? null, offset);
+
   const [loading, setLoading] = useState(true);
   const [isExiting, setIsExiting] = useState(false);
+
+  // Calcula a impressão do aparelho (roda só no navegador, não usa o banco).
+  useEffect(() => {
+    import("@fingerprintjs/fingerprintjs")
+      .then((FP) => FP.load())
+      .then((fp) => fp.get())
+      .then((r) => setDeviceId(r.visitorId))
+      .catch(() => setDeviceId("indisponivel"));
+  }, []);
+
+  const carregar = useCallback(async () => {
+    if (!deviceId) return;
+    try {
+      const r = await fetch(`/api/paredao?d=${encodeURIComponent(deviceId)}`, { cache: "no-store" });
+      if (!r.ok) return;
+      const j: DadosParedao = await r.json();
+      setOffset(new Date(j.agora).getTime() - Date.now());
+      setDados(j);
+    } catch {
+      // mantém os dados atuais se a conexão falhar
+    }
+  }, [deviceId]);
+
+  useEffect(() => {
+    carregar();
+    const id = setInterval(carregar, 30_000); // atualiza as porcentagens
+    return () => clearInterval(id);
+  }, [carregar]);
+
+  async function votar(id: number) {
+    if (enviando || !deviceId) return;
+    setEnviando(true);
+    setMsg("");
+    try {
+      const r = await fetch("/api/paredao/votar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ participanteId: id, deviceId }),
+      });
+      const j = await r.json().catch(() => ({}));
+      setMsg(r.ok ? "Voto registrado! 💜" : j.error ?? "Erro ao votar");
+    } catch {
+      setMsg("Erro de conexão, tente de novo.");
+    }
+    await carregar();
+    setEnviando(false);
+  }
+
+  const participantes = dados?.participantes ?? [];
+  const lider =
+    dados && dados.totalVotos > 0
+      ? participantes.reduce((a, b) => (b.porcentagem > a.porcentagem ? b : a)).id
+      : null;
+  const votado = dados?.meuVoto ?? null;
+  const jaVotou = votado !== null;
+  const encerrado = fechado || (dados?.encerrado ?? false);
 
   useEffect(() => {
     const startExit = setTimeout(() => setIsExiting(true), 3200);
@@ -441,7 +501,9 @@ export default function ParedaoPage() {
           <div className="rounded-2xl border border-violet-400/40 bg-[#120a2c] p-3">
             <div className="flex items-center gap-3">
               <RelogioOuro />
-              <p className="text-sm font-medium leading-tight text-white">Encerramento da votação em:</p>
+              <p className="text-sm font-medium leading-tight text-white">
+                {encerrado ? "Votação encerrada" : "Encerramento da votação em:"}
+              </p>
             </div>
             <div className="mt-3 flex items-center gap-1.5 min-[340px]:gap-2">
               {[
@@ -494,10 +556,10 @@ export default function ParedaoPage() {
           className="dn-participantes mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2"
         >
           {participantes.map((p, i) => {
-            const ativo = votado === p.nome;
+            const ativo = votado === p.id;
             return (
               <article
-                key={p.nome}
+                key={p.id}
                 className={`dn-borda overflow-hidden rounded-2xl ${ativo ? "dn-borda-ativa" : ""}`}
                 style={{ animationDelay: `-${i * 0.9}s` }}
               >
@@ -516,7 +578,7 @@ export default function ParedaoPage() {
                     </div>
                   )}
 
-                  {p.nome === lider && (
+                  {p.id === lider && (
                     <span className="absolute left-2 top-2 z-10 flex items-center gap-1.5 text-base font-extrabold text-amber-200 drop-shadow-[0_1px_4px_rgba(0,0,0,.9)] sm:left-3 sm:top-3 sm:text-lg">
                       <IconCoroa className="h-5 w-6 drop-shadow-[0_0_5px_rgba(251,191,36,.7)] sm:h-6 sm:w-7" />
                       1º
@@ -545,22 +607,29 @@ export default function ParedaoPage() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => setVotado(p.nome)}
+                    onClick={() => votar(p.id)}
+                    disabled={encerrado || jaVotou || enviando || !deviceId}
                     aria-pressed={ativo}
-                    className={`dn-card-btn mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-full border-2 px-3 py-2 text-xs font-bold uppercase tracking-wider focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-300 sm:mt-4 sm:gap-3 sm:text-sm ${
+                    className={`dn-card-btn mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-full border-2 px-3 py-2 text-xs font-bold uppercase tracking-wider focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-300 disabled:cursor-not-allowed sm:mt-4 sm:gap-3 sm:text-sm ${
                       ativo
                         ? "border-fuchsia-400 bg-fuchsia-500/30"
                         : "border-violet-400/70 bg-[#120a28] hover:bg-violet-500/20"
-                    }`}
+                    } ${jaVotou && !ativo ? "opacity-50" : ""}`}
                   >
                     {ativo ? <IconCheck /> : <IconCurtir />}
-                    {ativo ? "Votado" : "Votar"}
+                    {ativo ? "Votado" : encerrado ? "Encerrado" : "Votar"}
                   </button>
                 </div>
               </article>
             );
           })}
         </section>
+
+        {msg && (
+          <p role="status" className="mt-4 text-center text-sm font-medium text-fuchsia-200">
+            {msg}
+          </p>
+        )}
 
         {/* RODAPÉ */}
         <footer className="mt-6 grid gap-3 border-t border-violet-500/50 pt-5 text-xs text-violet-100/90">
