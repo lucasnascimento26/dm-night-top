@@ -95,9 +95,9 @@ body {
   opacity: 0;
 }
 
-/* -------------------------------------------------------------------- */
-/*  Conteúdo da página — fade-in suave logo após o loader sumir          */
-/* -------------------------------------------------------------------- */
+/* ------------------------------------------------------------------ */
+/*  Conteúdo da página — fade-in suave logo após o loader sumir        */
+/* ------------------------------------------------------------------ */
 
 .content-fade-in {
   animation: content-fade-in 0.9s ease forwards;
