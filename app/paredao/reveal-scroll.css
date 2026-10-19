@@ -1,0 +1,35 @@
+/* Estado inicial: invisível e muito levemente abaixo */
+.reveal {
+  opacity: 0;
+  transform: translate3d(0, 8px, 0);
+  transition:
+    opacity 1.8s cubic-bezier(0.25, 0.1, 0.25, 1),
+    transform 2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: var(--reveal-delay, 0s);
+  will-change: opacity, transform;
+}
+
+/* Estado final */
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Cards em 1 ou 2 colunas: cada um entra no seu próprio scroll, sem atraso */
+@media (max-width: 1017px) {
+  .reveal { --reveal-delay: 0s !important; }
+}
+
+/* Sem JavaScript: mostra tudo normalmente */
+@media (scripting: none) {
+  .reveal { opacity: 1; transform: none; }
+}
+
+/* Quem prefere menos movimento */
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

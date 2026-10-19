@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import Loader from "../components/Loader";
+import "./reveal-scroll.css";
 
 // Textos das informações.
 const INFO_PAREDAO = {
@@ -59,14 +60,50 @@ const css = `
     linear-gradient(100deg, #86198f 0%, #e879f9 20%, #ffffff 40%, #e879f9 60%, #86198f 100%);
   box-shadow: 0 0 22px rgba(217,70,239,.6);
 }
-/* Acima de 774px: o palco desktop (hero com o fundo back-desktop.png) SUBSTITUI o fundo mobile */
+
+/* ---------- FOTOS DOS PARTICIPANTES ---------- */
+.dn-card-foto {
+  isolation: isolate;
+  background: #0b0618;
+}
+.dn-foto-img {
+  transition: transform .9s cubic-bezier(.2,.7,.2,1);
+  will-change: transform;
+}
+.dn-borda:hover .dn-foto-img { transform: scale(1.04); }
+
+/* Linha neon que separa a foto do corpo do card */
+.dn-foto-linha {
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, #a855f7 20%, #f5d0fe 50%, #a855f7 80%, transparent 100%);
+  box-shadow: 0 0 10px 1px rgba(168,85,247,.7);
+}
+
+/* Selos de vidro fosco sobre a foto (1º lugar / seu voto) */
+.dn-selo {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Painel de vidro fosco na base da foto (nome + porcentagem) */
+.dn-painel {
+  background: linear-gradient(135deg, rgba(20,10,45,.62), rgba(11,6,24,.72));
+  backdrop-filter: blur(14px) saturate(1.25);
+  -webkit-backdrop-filter: blur(14px) saturate(1.25);
+  border: 1px solid rgba(255,255,255,.14);
+  box-shadow:
+    0 8px 24px rgba(0,0,0,.35),
+    inset 0 1px 0 rgba(255,255,255,.12);
+}
+
+/* Acima de 774px: o palco desktop (hero com o fundo back-desktop.webp) SUBSTITUI o fundo mobile */
 @media (min-width: 774px) {
   .dn-fundo-mobile { display: none !important; }
 }
-/* A partir de 1018px: 4 participantes lado a lado e o bloco de infos empilhado dentro da sua metade.
+/* A partir de 1018px: 3 participantes lado a lado e o bloco de infos empilhado dentro da sua metade.
    Feito em CSS com !important porque as classes sm:* do Tailwind venciam as min-[1018px]:*. */
 @media (min-width: 1018px) {
-  .dn-participantes { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 1.25rem !important; }
+  .dn-participantes { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 1.25rem !important; }
   .dn-info-bloco { grid-template-columns: minmax(0, 1fr) !important; padding-top: 0 !important; padding-bottom: 0 !important; }
   .dn-info-bloco > * { padding: .75rem 1rem !important; }
   .dn-info-bloco > * + * {
@@ -75,12 +112,12 @@ const css = `
     border-top-width: 1px !important;
   }
 
-  /* CARDS MAIORES (1018px+): menos margem lateral, foto mais alta, textos e botão maiores */
+  /* CARDS MAIORES (1018px+): menos margem lateral, textos e botão maiores */
   .dn-conteudo { padding-left: 1rem !important; padding-right: 1rem !important; }
-  .dn-card-foto { aspect-ratio: 4 / 4.2 !important; }
   .dn-card-corpo { padding: 1.25rem !important; padding-top: 1rem !important; }
-  .dn-card-nome { font-size: 1.75rem !important; }
-  .dn-card-pct { font-size: 2.25rem !important; margin-top: .6rem !important; }
+  .dn-painel { padding: .75rem 1rem !important; }
+  .dn-card-nome { font-size: 1.6rem !important; }
+  .dn-card-pct { font-size: 2rem !important; }
   .dn-card-barra { height: .75rem !important; }
   .dn-card-btn { min-height: 3.25rem !important; font-size: .95rem !important; margin-top: 1.1rem !important; }
 }
@@ -88,8 +125,12 @@ const css = `
   .dn-borda { animation:none !important; background-position: 0 0, 40% center; }
   .dn-twinkle { animation:none !important; opacity:.7; }
   .dn-shine { animation:none !important; background-position: 40% center; }
+  .dn-foto-img { transition: none !important; }
+  .dn-borda:hover .dn-foto-img { transform: none !important; }
 }
 `;
+
+const useLayoutEffectSeguro = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 const icon = "h-7 w-7 fill-none stroke-current stroke-[1.6]";
 
@@ -237,7 +278,7 @@ function LinhaNeon({ lado }: { lado: "esq" | "dir" }) {
 }
 
 /* ---------- Hero desktop (acima de 774px) ----------
-   O palco tem a mesma proporção do print (1897x934) e usa o back-desktop.png como fundo,
+   O palco tem a mesma proporção do print (1897x934) e usa o back-desktop.webp como fundo,
    então anel e pódio ficam sempre no mesmo lugar. Tudo é posicionado em % do palco:
    - robô: dentro do anel, com os pés em cima do pódio
    - logo: começa na altura do pódio (coroa encostando nos pés do robô)
@@ -252,7 +293,7 @@ function HeroDesktop() {
       className="relative hidden w-full overflow-hidden min-[774px]:block"
       style={{
         aspectRatio: "1897 / 934",
-        backgroundImage: "url('/images/back-desktop.png')",
+        backgroundImage: "url('/images/back-desktop.webp')",
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
@@ -263,7 +304,7 @@ function HeroDesktop() {
 
       {/* logo pequena (canto superior) */}
       <Image
-        src="/images/logo-damas-da-night-neon.png"
+        src="/images/logo-damas-da-night-neon.webp"
         alt="Logo Damas da Night em letras rosa neon"
         width={220}
         height={80}
@@ -278,7 +319,7 @@ function HeroDesktop() {
       {/* robô: dentro do anel, pés no pódio */}
       <div className="absolute left-1/2 top-[9.8%] h-[53.5%] -translate-x-1/2">
         <Image
-          src="/images/mascote-robo-damas-da-night.png"
+          src="/images/mascote-robo-damas-da-night.webp"
           alt="Mascote robô roxo com um olho da Damas da Night fazendo coração com as mãos"
           width={380}
           height={420}
@@ -289,7 +330,7 @@ function HeroDesktop() {
       {/* logo grande: coroa nos pés do robô, no pódio (escala só em % do palco) */}
       <div className="absolute left-1/2 top-[49%] w-[28%] -translate-x-1/2">
         <Image
-          src="/images/logo-damas-da-night-olho.png"
+          src="/images/logo-paredao.webp"
           alt="Logo da Damas da Night com um olho roxo no centro"
           width={520}
           height={300}
@@ -408,6 +449,12 @@ export default function ParedaoPage() {
     dados && dados.totalVotos > 0
       ? participantes.reduce((a, b) => (b.porcentagem > a.porcentagem ? b : a)).id
       : null;
+  // Líder sempre no primeiro card: ordena por porcentagem (maior primeiro).
+  // O sort é estável, então em empate vale a ordem original (a mesma usada para escolher o líder).
+  const ordenados =
+    lider === null
+      ? participantes
+      : [...participantes].sort((a, b) => b.porcentagem - a.porcentagem);
   const votado = dados?.meuVoto ?? null;
   const jaVotou = votado !== null;
   const encerrado = fechado || (dados?.encerrado ?? false);
@@ -427,13 +474,97 @@ export default function ParedaoPage() {
     document.title = "Damas da Night — Paredão";
   }, []);
 
+  // Revela os elementos suavemente ao entrar na tela (uma vez só).
+  // Fica ANTES do "if (loading) return", por causa das regras dos hooks.
+  // IMPORTANTE: a classe "reveal" só pode ficar em elementos cujo className NÃO muda
+  // entre renders. Se o React reescrever o className, ele apaga o "is-visible"
+  // (adicionado aqui via classList) e o elemento some.
+  useEffect(() => {
+    if (loading) return;
+    const els = document.querySelectorAll<HTMLElement>(".reveal:not(.is-visible)");
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            e.target.classList.add("is-visible");
+            io.unobserve(e.target);
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -8% 0px" }
+    );
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [loading, participantes.length]);
+
+  // Troca de posição SUAVE dos cards (técnica FLIP):
+  // guarda a posição de cada card a cada render; quando a ordem muda, o card "volta"
+  // visualmente para onde estava e desliza até o novo lugar.
+  // Para deixar mais lento/rápido, mexa em DURACAO_TROCA (ms).
+  const DURACAO_TROCA = 1400;
+  const cardRefs = useRef<Map<number, HTMLElement>>(new Map());
+  const posAnterior = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const ordemAnterior = useRef("");
+  const ordemKey = ordenados.map((p) => p.id).join(",");
+
+  useLayoutEffectSeguro(() => {
+    const novas = new Map<number, { x: number; y: number }>();
+    cardRefs.current.forEach((el, id) => {
+      const r = el.getBoundingClientRect();
+      novas.set(id, { x: r.left + window.scrollX, y: r.top + window.scrollY });
+    });
+
+    const ordemMudou = ordemAnterior.current !== "" && ordemAnterior.current !== ordemKey;
+    const reduzir = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (ordemMudou && !reduzir) {
+      const ids = ordemKey.split(",").map(Number);
+      novas.forEach((pos, id) => {
+        const antes = posAnterior.current.get(id);
+        const el = cardRefs.current.get(id);
+        if (!antes || !el) return;
+        const dx = antes.x - pos.x;
+        const dy = antes.y - pos.y;
+        if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+
+        // quem sobe ganha um leve "destaque" (cresce um pouco); quem desce recua de leve.
+        const subindo = dy + dx > 0;
+        const escalaMeio = subindo ? 1.025 : 0.975;
+        const opacidadeMeio = subindo ? 1 : 0.85;
+        // pequeno atraso escalonado: os cards não se movem todos no mesmo instante
+        const atraso = ids.indexOf(id) * 70;
+
+        el.animate(
+          [
+            { transform: `translate(${dx}px, ${dy}px) scale(1)`, opacity: 1 },
+            {
+              transform: `translate(${dx / 2}px, ${dy / 2}px) scale(${escalaMeio})`,
+              opacity: opacidadeMeio,
+              offset: 0.5,
+            },
+            { transform: "translate(0, 0) scale(1)", opacity: 1 },
+          ],
+          {
+            duration: DURACAO_TROCA,
+            delay: atraso,
+            easing: "cubic-bezier(.65, 0, .35, 1)",
+            fill: "backwards",
+          }
+        );
+      });
+    }
+
+    ordemAnterior.current = ordemKey;
+    posAnterior.current = novas;
+  });
+
   if (loading) return <Loader isExiting={isExiting} />;
 
   return (
     <main className="content-fade-in relative min-h-screen overflow-hidden bg-[#06030f] font-sans text-white">
       <style>{css}</style>
 
-      {/* DESKTOP (acima de 774px): palco com o fundo back-desktop.png */}
+      {/* DESKTOP (acima de 774px): palco com o fundo back-desktop.webp */}
       <HeroDesktop />
 
       {/* coluna limitada a 767px: no celular tem o fundo mobile; no desktop é só o conteúdo abaixo do palco.
@@ -443,7 +574,7 @@ export default function ParedaoPage() {
       <div
         aria-hidden="true"
         className="dn-fundo-mobile pointer-events-none absolute inset-0 bg-[#06030f] bg-[length:100%_auto] bg-top bg-no-repeat"
-        style={{ backgroundImage: "url('/images/backparedao-mobile.png')" }}
+        style={{ backgroundImage: "url('/images/backparedao-mobile.webp')" }}
       />
 
       <div className="dn-conteudo relative mx-auto px-3 pb-8 sm:px-6 min-[774px]:pt-4">
@@ -453,7 +584,7 @@ export default function ParedaoPage() {
 
           {/* logo pequena (canto superior) */}
           <Image
-            src="/images/logo-damas-da-night-neon.png"
+            src="/images/logo-damas-da-night-neon.webp"
             alt="Logo Damas da Night em letras rosa neon"
             width={220}
             height={80}
@@ -467,7 +598,7 @@ export default function ParedaoPage() {
               <Brilhos />
               <div className="absolute inset-x-0 bottom-0 flex h-[94%] justify-center">
                 <Image
-                  src="/images/mascote-robo-damas-da-night.png"
+                  src="/images/mascote-robo-damas-da-night.webp"
                   alt="Mascote robô roxo com um olho da Damas da Night fazendo coração com as mãos"
                   width={380}
                   height={420}
@@ -481,7 +612,7 @@ export default function ParedaoPage() {
           {/* logo grande */}
           <div className="relative z-[1] order-2 -mt-[calc(4.5rem_+_5%)] flex flex-col items-center">
             <Image
-              src="/images/logo-damas-da-night-olho.png"
+              src="/images/logo-paredao.webp"
               alt="Logo da Damas da Night com um olho roxo no centro"
               width={520}
               height={300}
@@ -497,7 +628,7 @@ export default function ParedaoPage() {
         </header>
 
         {/* BARRA DE INFORMAÇÕES */}
-        <section className="mt-3 space-y-3 rounded-3xl border border-violet-500/50 bg-gradient-to-b from-[#1c0d40] to-[#0b0618] p-3 min-[1018px]:grid min-[1018px]:grid-cols-2 min-[1018px]:gap-3 min-[1018px]:space-y-0">
+        <section className="reveal mt-3 space-y-3 rounded-3xl border border-violet-500/50 bg-gradient-to-b from-[#1c0d40] to-[#0b0618] p-3 min-[1018px]:grid min-[1018px]:grid-cols-2 min-[1018px]:gap-3 min-[1018px]:space-y-0">
           <div className="rounded-2xl border border-violet-400/40 bg-[#120a2c] p-3">
             <div className="flex items-center gap-3">
               <RelogioOuro />
@@ -541,7 +672,7 @@ export default function ParedaoPage() {
         </section>
 
         {/* TÍTULO DA LISTA */}
-        <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 px-1">
+        <div className="reveal mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 px-1">
           <IconCoroa className="h-5 w-6 shrink-0" />
           <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-300 min-[340px]:tracking-[0.25em]">Participantes</h2>
           <span className="hidden h-px min-w-4 flex-1 bg-gradient-to-r from-violet-400/60 to-transparent min-[340px]:block" />
@@ -555,72 +686,98 @@ export default function ParedaoPage() {
           aria-label="Participantes do paredão"
           className="dn-participantes mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2"
         >
-          {participantes.map((p, i) => {
+          {ordenados.map((p, i) => {
             const ativo = votado === p.id;
             return (
-              <article
+              /* WRAPPER com className FIXO: é ele que recebe "reveal" / "is-visible".
+                 Assim, quando o card muda (ex.: depois de votar), o React não apaga o is-visible. */
+              <div
                 key={p.id}
-                className={`dn-borda overflow-hidden rounded-2xl ${ativo ? "dn-borda-ativa" : ""}`}
-                style={{ animationDelay: `-${i * 0.9}s` }}
+                className="reveal mx-auto w-full max-w-[360px] sm:max-w-none"
+                style={{ "--reveal-delay": `${i * 0.12}s` } as CSSProperties}
               >
-                <div className="dn-card-foto relative aspect-[16/10] bg-[radial-gradient(circle_at_50%_70%,rgba(168,85,247,0.35),transparent_65%)] sm:aspect-[4/3.3]">
-                  {p.foto ? (
-                    <Image
-                      src={p.foto}
-                      alt={`Foto de ${p.nome}, participante do paredão da Damas da Night`}
-                      fill
-                      sizes="(min-width: 1018px) 25vw, (min-width: 640px) 50vw, 100vw"
-                      className="object-cover object-top"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-7xl font-bold text-violet-400/40">
-                      {p.nome[0]}
+                <article
+                  ref={(el) => {
+                    if (el) cardRefs.current.set(p.id, el);
+                    else cardRefs.current.delete(p.id);
+                  }}
+                  className={`dn-borda w-full overflow-hidden rounded-2xl ${ativo ? "dn-borda-ativa" : ""}`}
+                  style={{ animationDelay: `-${i * 0.9}s` }}
+                >
+                  <div className="dn-card-foto relative aspect-[4/4.6] overflow-hidden">
+                    {p.foto ? (
+                      <Image
+                        src={p.foto}
+                        alt={`Foto de ${p.nome}, participante do paredão da Damas da Night`}
+                        fill
+                        sizes="(min-width: 1018px) 33vw, (min-width: 640px) 50vw, 100vw"
+                        className="dn-foto-img object-cover object-top"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-7xl font-bold text-violet-400/40">
+                        {p.nome[0]}
+                      </div>
+                    )}
+
+                    {/* linha neon separando a foto do corpo do card */}
+                    <div aria-hidden="true" className="dn-foto-linha pointer-events-none absolute inset-x-0 bottom-0 z-[2]" />
+
+                    {p.id === lider && (
+                      <span className="dn-selo absolute left-2 top-2 z-10 flex items-center gap-1.5 rounded-full border border-amber-300/40 bg-black/35 py-1 pl-2 pr-3 text-sm font-extrabold text-amber-200 shadow-[0_2px_12px_rgba(0,0,0,.45)] sm:left-3 sm:top-3 sm:text-base">
+                        <IconCoroa className="h-4 w-5 drop-shadow-[0_0_5px_rgba(251,191,36,.7)] sm:h-5 sm:w-6" />
+                        1º
+                        <span className="sr-only"> lugar</span>
+                      </span>
+                    )}
+
+                    {ativo && (
+                      <span className="dn-selo absolute right-2 top-2 z-10 flex items-center gap-1 rounded-full border border-fuchsia-300/50 bg-fuchsia-600/40 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-fuchsia-50 shadow-[0_2px_12px_rgba(0,0,0,.45)] sm:right-3 sm:top-3 sm:text-xs">
+                        Seu voto
+                      </span>
+                    )}
+
+                    {/* painel de vidro fosco: nome + porcentagem sobre a foto */}
+                    <div className="dn-painel absolute inset-x-2 bottom-3 z-10 flex items-center justify-between gap-3 rounded-xl px-3 py-2 sm:inset-x-3 sm:bottom-4 sm:px-4">
+                      <h2 className="dn-card-nome min-w-0 truncate text-lg font-bold leading-tight sm:text-2xl">
+                        {p.nome}
+                      </h2>
+                      <p className="dn-card-pct shrink-0 text-2xl font-extrabold leading-none tabular-nums text-fuchsia-100 sm:text-3xl">
+                        {p.porcentagem.toFixed(2).replace(".", ",")}%
+                      </p>
                     </div>
-                  )}
-
-                  {p.id === lider && (
-                    <span className="absolute left-2 top-2 z-10 flex items-center gap-1.5 text-base font-extrabold text-amber-200 drop-shadow-[0_1px_4px_rgba(0,0,0,.9)] sm:left-3 sm:top-3 sm:text-lg">
-                      <IconCoroa className="h-5 w-6 drop-shadow-[0_0_5px_rgba(251,191,36,.7)] sm:h-6 sm:w-7" />
-                      1º
-                      <span className="sr-only"> lugar</span>
-                    </span>
-                  )}
-                </div>
-
-                <div className="dn-card-corpo p-3 pt-2.5 sm:p-4 sm:pt-3">
-                  <h2 className="dn-card-nome text-lg font-bold leading-tight sm:text-2xl">{p.nome}</h2>
-                  <p className="dn-card-pct mt-1.5 text-2xl font-bold tabular-nums sm:mt-2 sm:text-3xl">
-                    {p.porcentagem.toFixed(2).replace(".", ",")}%
-                  </p>
-                  <div
-                    className="dn-card-barra mt-1.5 h-2 w-full overflow-hidden rounded-full bg-white/10 sm:mt-2 sm:h-2.5"
-                    role="progressbar"
-                    aria-valuenow={p.porcentagem}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-label={`Porcentagem de votos de ${p.nome}`}
-                  >
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-400"
-                      style={{ width: `${p.porcentagem}%` }}
-                    />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => votar(p.id)}
-                    disabled={encerrado || jaVotou || enviando || !deviceId}
-                    aria-pressed={ativo}
-                    className={`dn-card-btn mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-full border-2 px-3 py-2 text-xs font-bold uppercase tracking-wider focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-300 disabled:cursor-not-allowed sm:mt-4 sm:gap-3 sm:text-sm ${
-                      ativo
-                        ? "border-fuchsia-400 bg-fuchsia-500/30"
-                        : "border-violet-400/70 bg-[#120a28] hover:bg-violet-500/20"
-                    } ${jaVotou && !ativo ? "opacity-50" : ""}`}
-                  >
-                    {ativo ? <IconCheck /> : <IconCurtir />}
-                    {ativo ? "Votado" : encerrado ? "Encerrado" : "Votar"}
-                  </button>
-                </div>
-              </article>
+
+                  <div className="dn-card-corpo p-3 sm:p-4">
+                    <div
+                      className="dn-card-barra h-2 w-full overflow-hidden rounded-full bg-white/10 sm:h-2.5"
+                      role="progressbar"
+                      aria-valuenow={p.porcentagem}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-label={`Porcentagem de votos de ${p.nome}`}
+                    >
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-400"
+                        style={{ width: `${p.porcentagem}%` }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => votar(p.id)}
+                      disabled={encerrado || jaVotou || enviando || !deviceId}
+                      aria-pressed={ativo}
+                      className={`dn-card-btn mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-full border-2 px-3 py-2 text-xs font-bold uppercase tracking-wider focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-300 disabled:cursor-not-allowed sm:mt-4 sm:gap-3 sm:text-sm ${
+                        ativo
+                          ? "border-fuchsia-400 bg-fuchsia-500/30"
+                          : "border-violet-400/70 bg-[#120a28] hover:bg-violet-500/20"
+                      } ${jaVotou && !ativo ? "opacity-50" : ""}`}
+                    >
+                      {ativo ? <IconCheck /> : <IconCurtir />}
+                      {ativo ? "Votado" : encerrado ? "Encerrado" : "Votar"}
+                    </button>
+                  </div>
+                </article>
+              </div>
             );
           })}
         </section>
@@ -632,7 +789,7 @@ export default function ParedaoPage() {
         )}
 
         {/* RODAPÉ */}
-        <footer className="mt-6 grid gap-3 border-t border-violet-500/50 pt-5 text-xs text-violet-100/90">
+        <footer className="reveal mt-6 grid gap-3 border-t border-violet-500/50 pt-5 text-xs text-violet-100/90">
           <div className="flex items-center gap-3">
             <span className="text-violet-300">
               <IconEnvelope />
