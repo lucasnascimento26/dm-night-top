@@ -61,6 +61,21 @@ const css = `
   box-shadow: 0 0 22px rgba(217,70,239,.6);
 }
 
+/* ---------- ENTRADA SUAVE DO TOPO (TUDO JUNTO, COMO UMA IMAGEM SÓ) ----------
+   O fade é aplicado UMA VEZ no bloco inteiro (fundo + logos + robô), não em cada imagem.
+   Assim o bloco é composto primeiro e só depois ganha opacidade: nada aparece "uma a uma".
+   Os blocos ficam invisíveis até o Loader começar a sair (data-pronto="1" no <main>).
+   Todos usam o mesmo atraso (--d: 0s) para entrarem exatamente ao mesmo tempo. */
+@keyframes dn-entra {
+  from { opacity: 0; filter: blur(10px); }
+  to   { opacity: 1; filter: blur(0); }
+}
+.dn-hero-item { opacity: 0; }
+[data-pronto="1"] .dn-hero-item {
+  animation: dn-entra 1.1s cubic-bezier(.2,.7,.2,1) both;
+  animation-delay: var(--d, 0s);
+}
+
 /* ---------- FOTOS DOS PARTICIPANTES ---------- */
 .dn-card-foto {
   isolation: isolate;
@@ -96,6 +111,16 @@ const css = `
     inset 0 1px 0 rgba(255,255,255,.12);
 }
 
+/* MOBILE (abaixo de 774px): borda dos cards SEM animação (mais leve para o celular).
+   O gradiente fica parado com o brilho claro no meio da borda, mantendo o visual neon.
+   Para mudar onde fica o brilho, mexa no "40%" (0% = esquerda, 100% = direita). */
+@media (max-width: 773px) {
+  .dn-borda {
+    animation: none;
+    background-position: 0 0, 40% center;
+  }
+}
+
 /* Acima de 774px: o palco desktop (hero com o fundo back-desktop.webp) SUBSTITUI o fundo mobile */
 @media (min-width: 774px) {
   .dn-fundo-mobile { display: none !important; }
@@ -127,6 +152,7 @@ const css = `
   .dn-shine { animation:none !important; background-position: 40% center; }
   .dn-foto-img { transition: none !important; }
   .dn-borda:hover .dn-foto-img { transform: none !important; }
+  .dn-hero-item { opacity: 1 !important; animation: none !important; }
 }
 `;
 
@@ -285,20 +311,25 @@ function LinhaNeon({ lado }: { lado: "esq" | "dir" }) {
    - frase: logo abaixo da logo
    RESPONSIVIDADE: o palco é um "container" (containerType: inline-size). A logo grande e a frase
    escalam só em % / cqw (sem larguras mínimas fixas), então nunca se sobrepõem em telas menores
-   (ex.: 774px–1100px). Para ajustar o encaixe, mexa nos valores top-[...] / h-[...] abaixo. */
+   (ex.: 774px–1100px). Para ajustar o encaixe, mexa nos valores top-[...] / h-[...] abaixo.
+   ENTRADA: a própria <section> (fundo + logos + robô + estrelinhas) tem "dn-hero-item",
+   então tudo aparece JUNTO, como uma imagem só. A frase (fora do palco) usa o mesmo atraso. */
 function HeroDesktop() {
   return (
     <>
     <section
-      className="relative hidden w-full overflow-hidden min-[774px]:block"
-      style={{
-        aspectRatio: "1897 / 934",
-        backgroundImage: "url('/images/back-desktop.webp')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-        containerType: "inline-size",
-      }}
+      className="dn-hero-item relative hidden w-full overflow-hidden min-[774px]:block"
+      style={
+        {
+          "--d": "0s",
+          aspectRatio: "1897 / 934",
+          backgroundImage: "url('/images/back-desktop.webp')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          containerType: "inline-size",
+        } as CSSProperties
+      }
     >
       <h1 className="sr-only">Paredão Damas</h1>
 
@@ -308,6 +339,7 @@ function HeroDesktop() {
         alt="Logo Damas da Night em letras rosa neon"
         width={220}
         height={80}
+        priority
         className="absolute left-[3%] top-[3%] z-10 w-[13%] min-w-32"
       />
 
@@ -323,6 +355,7 @@ function HeroDesktop() {
           alt="Mascote robô roxo com um olho da Damas da Night fazendo coração com as mãos"
           width={380}
           height={420}
+          priority
           className="h-full w-auto"
         />
       </div>
@@ -334,6 +367,7 @@ function HeroDesktop() {
           alt="Logo da Damas da Night com um olho roxo no centro"
           width={520}
           height={300}
+          priority
           className="h-auto w-full"
         />
       </div>
@@ -343,16 +377,19 @@ function HeroDesktop() {
     </section>
 
     {/* frase: FORA do palco (no espaço entre o hero e a barra de informações), só acima de 774px.
-        Usa vw porque o palco ocupa 100% da largura da tela. */}
+        Usa vw porque o palco ocupa 100% da largura da tela. Mesmo atraso (0s) do palco. */}
     <p
-      className="relative z-10 mx-auto hidden items-center justify-center font-bold italic tracking-wide min-[774px]:flex"
-      style={{
-        width: "clamp(300px, 42vw, 600px)",
-        fontSize: "clamp(15px, 2vw, 30px)",
-        gap: "clamp(8px, 1.2vw, 20px)",
-        marginTop: "-3.5vw", // espaço acima (mais negativo = mais perto da logo)
-        marginBottom: "2vw", // espaço abaixo (até a barra de informações)
-      }}
+      className="dn-hero-item relative z-10 mx-auto hidden items-center justify-center font-bold italic tracking-wide min-[774px]:flex"
+      style={
+        {
+          "--d": "0s",
+          width: "clamp(300px, 42vw, 600px)",
+          fontSize: "clamp(15px, 2vw, 30px)",
+          gap: "clamp(8px, 1.2vw, 20px)",
+          marginTop: "-3.5vw", // espaço acima (mais negativo = mais perto da logo)
+          marginBottom: "2vw", // espaço abaixo (até a barra de informações)
+        } as CSSProperties
+      }
     >
       <LinhaNeon lado="esq" />
       <span className="whitespace-nowrap">O PAREDÃO TÁ ON!</span>
@@ -396,6 +433,10 @@ export default function ParedaoPage() {
 
   const [loading, setLoading] = useState(true);
   const [isExiting, setIsExiting] = useState(false);
+  const [minimoPassou, setMinimoPassou] = useState(false); // tempo mínimo do loader já passou
+  const [heroPronto, setHeroPronto] = useState(false); // fundos + logos + robô carregados
+  const [cardsProntos, setCardsProntos] = useState(false); // dados da API + fotos dos participantes carregados
+  const [limite, setLimite] = useState(false); // passou 8s: libera mesmo que algo tenha falhado
 
   // Calcula a impressão do aparelho (roda só no navegador, não usa o banco).
   useEffect(() => {
@@ -459,15 +500,83 @@ export default function ParedaoPage() {
   const jaVotou = votado !== null;
   const encerrado = fechado || (dados?.encerrado ?? false);
 
+  // Tempo mínimo do loader (3,2s).
   useEffect(() => {
-    const startExit = setTimeout(() => setIsExiting(true), 3200);
-    const removeLoader = setTimeout(() => setLoading(false), 3200 + 800);
+    const t = setTimeout(() => setMinimoPassou(true), 3200);
+    return () => clearTimeout(t);
+  }, []);
+
+  // A página já fica montada POR BAIXO do loader. O loader só sai quando TUDO estiver pronto:
+  // (1) fundos + logos + robô, (2) dados da API, (3) fotos dos participantes.
+  // Limite de 8s para nunca travar (ex.: API fora do ar ou foto quebrada).
+  useEffect(() => {
+    let cancelado = false;
+
+    const fundos = ["/images/back-desktop.webp", "/images/backparedao-mobile.webp"].map(
+      (src) =>
+        new Promise<void>((res) => {
+          const img = new window.Image();
+          img.onload = img.onerror = () => res();
+          img.src = src;
+        })
+    );
+
+    const imgs = Array.from(document.querySelectorAll<HTMLImageElement>("main img")).map((img) =>
+      img.complete
+        ? Promise.resolve()
+        : new Promise<void>((res) => {
+            img.addEventListener("load", () => res(), { once: true });
+            img.addEventListener("error", () => res(), { once: true });
+          })
+    );
+
+    Promise.all([...fundos, ...imgs]).then(() => {
+      if (!cancelado) setHeroPronto(true);
+    });
+
+    const t = setTimeout(() => setLimite(true), 8000);
 
     return () => {
-      clearTimeout(startExit);
-      clearTimeout(removeLoader);
+      cancelado = true;
+      clearTimeout(t);
     };
   }, []);
+
+  // Quando os dados chegam, os cards são renderizados; aí esperamos as fotos deles carregarem.
+  const dadosCarregados = dados !== null;
+  useEffect(() => {
+    if (!dadosCarregados) return;
+    let cancelado = false;
+
+    const fotos = Array.from(
+      document.querySelectorAll<HTMLImageElement>(".dn-participantes img")
+    ).map((img) =>
+      img.complete
+        ? Promise.resolve()
+        : new Promise<void>((res) => {
+            img.addEventListener("load", () => res(), { once: true });
+            img.addEventListener("error", () => res(), { once: true });
+          })
+    );
+
+    Promise.all(fotos).then(() => {
+      if (!cancelado) setCardsProntos(true);
+    });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [dadosCarregados]);
+
+  // Quando o tempo mínimo passou E tudo está carregado (ou estourou o limite),
+  // o loader começa a sair e o topo (fundo + logos + robô) entra junto, com fade suave.
+  const tudoPronto = heroPronto && cardsProntos;
+  useEffect(() => {
+    if (!minimoPassou || !(tudoPronto || limite)) return;
+    setIsExiting(true);
+    const t = setTimeout(() => setLoading(false), 800);
+    return () => clearTimeout(t);
+  }, [minimoPassou, tudoPronto, limite]);
 
   // Garante o título da aba, mesmo que o layout da pasta não seja aplicado.
   useEffect(() => {
@@ -475,7 +584,6 @@ export default function ParedaoPage() {
   }, []);
 
   // Revela os elementos suavemente ao entrar na tela (uma vez só).
-  // Fica ANTES do "if (loading) return", por causa das regras dos hooks.
   // IMPORTANTE: a classe "reveal" só pode ficar em elementos cujo className NÃO muda
   // entre renders. Se o React reescrever o className, ele apaga o "is-visible"
   // (adicionado aqui via classList) e o elemento some.
@@ -558,266 +666,286 @@ export default function ParedaoPage() {
     posAnterior.current = novas;
   });
 
-  if (loading) return <Loader isExiting={isExiting} />;
-
   return (
-    <main className="content-fade-in relative min-h-screen overflow-hidden bg-[#06030f] font-sans text-white">
-      <style>{css}</style>
+    <>
+      {/* Loader por cima: a página já está montada por baixo, carregando as imagens */}
+      {loading && (
+        <div className="fixed inset-0 z-[9999]">
+          <Loader isExiting={isExiting} />
+        </div>
+      )}
 
-      {/* DESKTOP (acima de 774px): palco com o fundo back-desktop.webp */}
-      <HeroDesktop />
+      <main
+        data-pronto={isExiting ? "1" : "0"}
+        className="content-fade-in relative min-h-screen overflow-hidden bg-[#06030f] font-sans text-white"
+      >
+        <style>{css}</style>
 
-      {/* coluna limitada a 767px: no celular tem o fundo mobile; no desktop é só o conteúdo abaixo do palco.
-          A partir de 1018px a coluna passa a 1320px (antes 1100px) para os cards ficarem maiores. */}
-      <div className="relative mx-auto min-h-screen w-full max-w-[767px] overflow-hidden bg-[#06030f] min-[1018px]:max-w-[1320px]">
-      {/* fundo mobile (imagem): só aparece abaixo de 774px */}
-      <div
-        aria-hidden="true"
-        className="dn-fundo-mobile pointer-events-none absolute inset-0 bg-[#06030f] bg-[length:100%_auto] bg-top bg-no-repeat"
-        style={{ backgroundImage: "url('/images/backparedao-mobile.webp')" }}
-      />
+        {/* DESKTOP (acima de 774px): palco com o fundo back-desktop.webp */}
+        <HeroDesktop />
 
-      <div className="dn-conteudo relative mx-auto px-3 pb-8 sm:px-6 min-[774px]:pt-4">
-        {/* TOPO MOBILE (abaixo de 774px) */}
-        <header className="relative min-[774px]:hidden">
-          <h1 className="sr-only">Paredão Damas</h1>
+        {/* coluna limitada a 767px: no celular tem o fundo mobile; no desktop é só o conteúdo abaixo do palco.
+            A partir de 1018px a coluna passa a 1320px (antes 1100px) para os cards ficarem maiores. */}
+        <div className="relative mx-auto min-h-screen w-full max-w-[767px] overflow-hidden bg-[#06030f] min-[1018px]:max-w-[1320px]">
+        {/* fundo mobile (imagem): só aparece abaixo de 774px.
+            Tem "dn-hero-item" com o MESMO atraso (0s) do <header>, então fundo + logos + robô entram juntos. */}
+        <div
+          aria-hidden="true"
+          className="dn-hero-item dn-fundo-mobile pointer-events-none absolute inset-0 bg-[#06030f] bg-[length:100%_auto] bg-top bg-no-repeat"
+          style={
+            {
+              "--d": "0s",
+              backgroundImage: "url('/images/backparedao-mobile.webp')",
+            } as CSSProperties
+          }
+        />
 
-          {/* logo pequena (canto superior) */}
-          <Image
-            src="/images/logo-damas-da-night-neon.webp"
-            alt="Logo Damas da Night em letras rosa neon"
-            width={220}
-            height={80}
-            className="absolute left-0 top-4 z-10 w-24 sm:w-32"
-            priority
-          />
+        <div className="dn-conteudo relative mx-auto px-3 pb-8 sm:px-6 min-[774px]:pt-4">
+          {/* TOPO MOBILE (abaixo de 774px): o <header> inteiro faz UM fade só (logos + mascote juntos) */}
+          <header
+            className="dn-hero-item relative min-[774px]:hidden"
+            style={{ "--d": "0s" } as CSSProperties}
+          >
+            <h1 className="sr-only">Paredão Damas</h1>
 
-          {/* mascote */}
-          <div className="relative order-1 -mx-3 aspect-[100/68] sm:-mx-6">
-            <div className="absolute inset-0">
-              <Brilhos />
-              <div className="absolute inset-x-0 bottom-0 flex h-[94%] justify-center">
-                <Image
-                  src="/images/mascote-robo-damas-da-night.webp"
-                  alt="Mascote robô roxo com um olho da Damas da Night fazendo coração com as mãos"
-                  width={380}
-                  height={420}
-                  className="h-full w-auto"
-                  priority
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* logo grande */}
-          <div className="relative z-[1] order-2 -mt-[calc(4.5rem_+_5%)] flex flex-col items-center">
+            {/* logo pequena (canto superior) */}
             <Image
-              src="/images/logo-paredao.webp"
-              alt="Logo da Damas da Night com um olho roxo no centro"
-              width={520}
-              height={300}
-              className="h-auto w-[74%] max-w-[360px]"
+              src="/images/logo-damas-da-night-neon.webp"
+              alt="Logo Damas da Night em letras rosa neon"
+              width={220}
+              height={80}
+              className="absolute left-0 top-4 z-10 w-24 sm:w-32"
               priority
             />
-            <p className="mt-2 flex w-[86%] max-w-[420px] items-center gap-3 text-[15px] font-bold italic tracking-wide sm:text-base">
-              <LinhaNeon lado="esq" />
-              <span className="whitespace-nowrap">O PAREDÃO TÁ ON!</span>
-              <LinhaNeon lado="dir" />
-            </p>
-          </div>
-        </header>
 
-        {/* BARRA DE INFORMAÇÕES */}
-        <section className="reveal mt-3 space-y-3 rounded-3xl border border-violet-500/50 bg-gradient-to-b from-[#1c0d40] to-[#0b0618] p-3 min-[1018px]:grid min-[1018px]:grid-cols-2 min-[1018px]:gap-3 min-[1018px]:space-y-0">
-          <div className="rounded-2xl border border-violet-400/40 bg-[#120a2c] p-3">
-            <div className="flex items-center gap-3">
-              <RelogioOuro />
-              <p className="text-sm font-medium leading-tight text-white">
-                {encerrado ? "Votação encerrada" : "Encerramento da votação em:"}
+            {/* mascote */}
+            <div className="relative order-1 -mx-3 aspect-[100/68] sm:-mx-6">
+              <div className="absolute inset-0">
+                <Brilhos />
+                <div className="absolute inset-x-0 bottom-0 flex h-[94%] justify-center">
+                  <Image
+                    src="/images/mascote-robo-damas-da-night.webp"
+                    alt="Mascote robô roxo com um olho da Damas da Night fazendo coração com as mãos"
+                    width={380}
+                    height={420}
+                    className="h-full w-auto"
+                    priority
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* logo grande */}
+            <div className="relative z-[1] order-2 -mt-[calc(4.5rem_+_5%)] flex flex-col items-center">
+              <Image
+                src="/images/logo-paredao.webp"
+                alt="Logo da Damas da Night com um olho roxo no centro"
+                width={520}
+                height={300}
+                className="h-auto w-[74%] max-w-[360px]"
+                priority
+              />
+              <p className="mt-2 flex w-[86%] max-w-[420px] items-center gap-3 text-[15px] font-bold italic tracking-wide sm:text-base">
+                <LinhaNeon lado="esq" />
+                <span className="whitespace-nowrap">O PAREDÃO TÁ ON!</span>
+                <LinhaNeon lado="dir" />
               </p>
             </div>
-            <div className="mt-3 flex items-center gap-1.5 min-[340px]:gap-2">
-              {[
-                { v: dias, r: "dias" },
-                { v: horas, r: "horas" },
-                { v: min, r: "min" },
-              ].map((t, i) => (
-                <div key={t.r} className="contents">
-                  {i > 0 && <span className="text-lg font-bold text-white min-[340px]:text-xl">:</span>}
-                  <span className="flex min-w-0 flex-1 flex-col items-center rounded-xl border border-violet-400/40 bg-[#0c0721] py-2">
-                    <span className="text-2xl font-bold leading-none tabular-nums text-white min-[340px]:text-3xl">{t.v}</span>
-                    <small className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-violet-300">{t.r}</small>
-                  </span>
+          </header>
+
+          {/* BARRA DE INFORMAÇÕES */}
+          <section className="reveal mt-3 space-y-3 rounded-3xl border border-violet-500/50 bg-gradient-to-b from-[#1c0d40] to-[#0b0618] p-3 min-[1018px]:grid min-[1018px]:grid-cols-2 min-[1018px]:gap-3 min-[1018px]:space-y-0">
+            <div className="rounded-2xl border border-violet-400/40 bg-[#120a2c] p-3">
+              <div className="flex items-center gap-3">
+                <RelogioOuro />
+                <p className="text-sm font-medium leading-tight text-white">
+                  {encerrado ? "Votação encerrada" : "Encerramento da votação em:"}
+                </p>
+              </div>
+              <div className="mt-3 flex items-center gap-1.5 min-[340px]:gap-2">
+                {[
+                  { v: dias, r: "dias" },
+                  { v: horas, r: "horas" },
+                  { v: min, r: "min" },
+                ].map((t, i) => (
+                  <div key={t.r} className="contents">
+                    {i > 0 && <span className="text-lg font-bold text-white min-[340px]:text-xl">:</span>}
+                    <span className="flex min-w-0 flex-1 flex-col items-center rounded-xl border border-violet-400/40 bg-[#0c0721] py-2">
+                      <span className="text-2xl font-bold leading-none tabular-nums text-white min-[340px]:text-3xl">{t.v}</span>
+                      <small className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-violet-300">{t.r}</small>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="dn-info-bloco grid grid-cols-1 divide-y divide-violet-400/30 rounded-2xl border border-violet-400/30 bg-[#120a2c] sm:grid-cols-2 sm:divide-x sm:divide-y-0 sm:py-4">
+              <div className="flex min-w-0 items-center gap-3 px-4 py-3 sm:px-3 sm:py-0">
+                <IconOlho className="h-8 w-8 shrink-0 fill-none stroke-amber-400 stroke-[1.5] sm:h-9 sm:w-9" />
+                <div className="min-w-0">
+                  <p className="text-[15px] font-bold leading-tight text-white">{INFO_PAREDAO.titulo}</p>
+                  <p className="mt-1 text-xs leading-snug text-violet-200/80">{INFO_PAREDAO.texto}</p>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="dn-info-bloco grid grid-cols-1 divide-y divide-violet-400/30 rounded-2xl border border-violet-400/30 bg-[#120a2c] sm:grid-cols-2 sm:divide-x sm:divide-y-0 sm:py-4">
-            <div className="flex min-w-0 items-center gap-3 px-4 py-3 sm:px-3 sm:py-0">
-              <IconOlho className="h-8 w-8 shrink-0 fill-none stroke-amber-400 stroke-[1.5] sm:h-9 sm:w-9" />
-              <div className="min-w-0">
-                <p className="text-[15px] font-bold leading-tight text-white">{INFO_PAREDAO.titulo}</p>
-                <p className="mt-1 text-xs leading-snug text-violet-200/80">{INFO_PAREDAO.texto}</p>
+              </div>
+              <div className="flex min-w-0 items-center gap-3 px-4 py-3 sm:px-3 sm:py-0">
+                <IconGrupo className="h-8 w-8 shrink-0 fill-none stroke-amber-400 stroke-[1.5] sm:h-9 sm:w-9" />
+                <div className="min-w-0">
+                  <p className="text-[15px] font-bold leading-tight text-white">{INFO_VOTO.titulo}</p>
+                  <p className="mt-1 text-xs leading-snug text-violet-200/80">{INFO_VOTO.texto}</p>
+                </div>
               </div>
             </div>
-            <div className="flex min-w-0 items-center gap-3 px-4 py-3 sm:px-3 sm:py-0">
-              <IconGrupo className="h-8 w-8 shrink-0 fill-none stroke-amber-400 stroke-[1.5] sm:h-9 sm:w-9" />
-              <div className="min-w-0">
-                <p className="text-[15px] font-bold leading-tight text-white">{INFO_VOTO.titulo}</p>
-                <p className="mt-1 text-xs leading-snug text-violet-200/80">{INFO_VOTO.texto}</p>
-              </div>
-            </div>
+          </section>
+
+          {/* TÍTULO DA LISTA */}
+          <div className="reveal mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 px-1">
+            <IconCoroa className="h-5 w-6 shrink-0" />
+            <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-300 min-[340px]:tracking-[0.25em]">Participantes</h2>
+            <span className="hidden h-px min-w-4 flex-1 bg-gradient-to-r from-violet-400/60 to-transparent min-[340px]:block" />
+            <span className="shrink-0 whitespace-nowrap rounded-full border border-violet-400/50 bg-[#120a2c] px-3 py-1 text-xs font-medium text-violet-100">
+              1º Paredão <span aria-hidden="true">🔥</span>
+            </span>
           </div>
-        </section>
 
-        {/* TÍTULO DA LISTA */}
-        <div className="reveal mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 px-1">
-          <IconCoroa className="h-5 w-6 shrink-0" />
-          <h2 className="text-xs font-semibold uppercase tracking-[0.2em] text-violet-300 min-[340px]:tracking-[0.25em]">Participantes</h2>
-          <span className="hidden h-px min-w-4 flex-1 bg-gradient-to-r from-violet-400/60 to-transparent min-[340px]:block" />
-          <span className="shrink-0 whitespace-nowrap rounded-full border border-violet-400/50 bg-[#120a2c] px-3 py-1 text-xs font-medium text-violet-100">
-            1º Paredão <span aria-hidden="true">🔥</span>
-          </span>
-        </div>
-
-        {/* CARDS DOS PARTICIPANTES */}
-        <section
-          aria-label="Participantes do paredão"
-          className="dn-participantes mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2"
-        >
-          {ordenados.map((p, i) => {
-            const ativo = votado === p.id;
-            return (
-              /* WRAPPER com className FIXO: é ele que recebe "reveal" / "is-visible".
-                 Assim, quando o card muda (ex.: depois de votar), o React não apaga o is-visible. */
-              <div
-                key={p.id}
-                className="reveal mx-auto w-full max-w-[360px] sm:max-w-none"
-                style={{ "--reveal-delay": `${i * 0.12}s` } as CSSProperties}
-              >
-                <article
-                  ref={(el) => {
-                    if (el) cardRefs.current.set(p.id, el);
-                    else cardRefs.current.delete(p.id);
-                  }}
-                  className={`dn-borda w-full overflow-hidden rounded-2xl ${ativo ? "dn-borda-ativa" : ""}`}
-                  style={{ animationDelay: `-${i * 0.9}s` }}
+          {/* CARDS DOS PARTICIPANTES */}
+          <section
+            aria-label="Participantes do paredão"
+            className="dn-participantes mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2"
+          >
+            {ordenados.map((p, i) => {
+              const ativo = votado === p.id;
+              return (
+                /* WRAPPER com className FIXO: é ele que recebe "reveal" / "is-visible".
+                   Assim, quando o card muda (ex.: depois de votar), o React não apaga o is-visible. */
+                <div
+                  key={p.id}
+                  className="reveal mx-auto w-full max-w-[360px] sm:max-w-none"
+                  style={{ "--reveal-delay": `${i * 0.12}s` } as CSSProperties}
                 >
-                  <div className="dn-card-foto relative aspect-[4/4.6] overflow-hidden">
-                    {p.foto ? (
-                      <Image
-                        src={p.foto}
-                        alt={`Foto de ${p.nome}, participante do paredão da Damas da Night`}
-                        fill
-                        sizes="(min-width: 1018px) 33vw, (min-width: 640px) 50vw, 100vw"
-                        className="dn-foto-img object-cover object-top"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-7xl font-bold text-violet-400/40">
-                        {p.nome[0]}
+                  <article
+                    ref={(el) => {
+                      if (el) cardRefs.current.set(p.id, el);
+                      else cardRefs.current.delete(p.id);
+                    }}
+                    className={`dn-borda w-full overflow-hidden rounded-2xl ${ativo ? "dn-borda-ativa" : ""}`}
+                    style={{ animationDelay: `-${i * 0.9}s` }}
+                  >
+                    <div className="dn-card-foto relative aspect-[4/4.6] overflow-hidden">
+                      {p.foto ? (
+                        <Image
+                          src={p.foto}
+                          alt={`Foto de ${p.nome}, participante do paredão da Damas da Night`}
+                          fill
+                          loading="eager"
+                          sizes="(min-width: 1018px) 33vw, (min-width: 640px) 50vw, 100vw"
+                          className="dn-foto-img object-cover object-top"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-7xl font-bold text-violet-400/40">
+                          {p.nome[0]}
+                        </div>
+                      )}
+
+                      {/* linha neon separando a foto do corpo do card */}
+                      <div aria-hidden="true" className="dn-foto-linha pointer-events-none absolute inset-x-0 bottom-0 z-[2]" />
+
+                      {p.id === lider && (
+                        <span className="dn-selo absolute left-2 top-2 z-10 flex items-center gap-1.5 rounded-full border border-amber-300/40 bg-black/35 py-1 pl-2 pr-3 text-sm font-extrabold text-amber-200 shadow-[0_2px_12px_rgba(0,0,0,.45)] sm:left-3 sm:top-3 sm:text-base">
+                          <IconCoroa className="h-4 w-5 drop-shadow-[0_0_5px_rgba(251,191,36,.7)] sm:h-5 sm:w-6" />
+                          1º
+                          <span className="sr-only"> lugar</span>
+                        </span>
+                      )}
+
+                      {ativo && (
+                        <span className="dn-selo absolute right-2 top-2 z-10 flex items-center gap-1 rounded-full border border-fuchsia-300/50 bg-fuchsia-600/40 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-fuchsia-50 shadow-[0_2px_12px_rgba(0,0,0,.45)] sm:right-3 sm:top-3 sm:text-xs">
+                          Seu voto
+                        </span>
+                      )}
+
+                      {/* painel de vidro fosco: nome + porcentagem sobre a foto */}
+                      <div className="dn-painel absolute inset-x-2 bottom-3 z-10 flex items-center justify-between gap-3 rounded-xl px-3 py-2 sm:inset-x-3 sm:bottom-4 sm:px-4">
+                        <h2 className="dn-card-nome min-w-0 truncate text-lg font-bold leading-tight sm:text-2xl">
+                          {p.nome}
+                        </h2>
+                        <p className="dn-card-pct shrink-0 text-2xl font-extrabold leading-none tabular-nums text-fuchsia-100 sm:text-3xl">
+                          {p.porcentagem.toFixed(2).replace(".", ",")}%
+                        </p>
                       </div>
-                    )}
-
-                    {/* linha neon separando a foto do corpo do card */}
-                    <div aria-hidden="true" className="dn-foto-linha pointer-events-none absolute inset-x-0 bottom-0 z-[2]" />
-
-                    {p.id === lider && (
-                      <span className="dn-selo absolute left-2 top-2 z-10 flex items-center gap-1.5 rounded-full border border-amber-300/40 bg-black/35 py-1 pl-2 pr-3 text-sm font-extrabold text-amber-200 shadow-[0_2px_12px_rgba(0,0,0,.45)] sm:left-3 sm:top-3 sm:text-base">
-                        <IconCoroa className="h-4 w-5 drop-shadow-[0_0_5px_rgba(251,191,36,.7)] sm:h-5 sm:w-6" />
-                        1º
-                        <span className="sr-only"> lugar</span>
-                      </span>
-                    )}
-
-                    {ativo && (
-                      <span className="dn-selo absolute right-2 top-2 z-10 flex items-center gap-1 rounded-full border border-fuchsia-300/50 bg-fuchsia-600/40 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-fuchsia-50 shadow-[0_2px_12px_rgba(0,0,0,.45)] sm:right-3 sm:top-3 sm:text-xs">
-                        Seu voto
-                      </span>
-                    )}
-
-                    {/* painel de vidro fosco: nome + porcentagem sobre a foto */}
-                    <div className="dn-painel absolute inset-x-2 bottom-3 z-10 flex items-center justify-between gap-3 rounded-xl px-3 py-2 sm:inset-x-3 sm:bottom-4 sm:px-4">
-                      <h2 className="dn-card-nome min-w-0 truncate text-lg font-bold leading-tight sm:text-2xl">
-                        {p.nome}
-                      </h2>
-                      <p className="dn-card-pct shrink-0 text-2xl font-extrabold leading-none tabular-nums text-fuchsia-100 sm:text-3xl">
-                        {p.porcentagem.toFixed(2).replace(".", ",")}%
-                      </p>
                     </div>
-                  </div>
 
-                  <div className="dn-card-corpo p-3 sm:p-4">
-                    <div
-                      className="dn-card-barra h-2 w-full overflow-hidden rounded-full bg-white/10 sm:h-2.5"
-                      role="progressbar"
-                      aria-valuenow={p.porcentagem}
-                      aria-valuemin={0}
-                      aria-valuemax={100}
-                      aria-label={`Porcentagem de votos de ${p.nome}`}
-                    >
+                    <div className="dn-card-corpo p-3 sm:p-4">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-400"
-                        style={{ width: `${p.porcentagem}%` }}
-                      />
+                        className="dn-card-barra h-2 w-full overflow-hidden rounded-full bg-white/10 sm:h-2.5"
+                        role="progressbar"
+                        aria-valuenow={p.porcentagem}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-label={`Porcentagem de votos de ${p.nome}`}
+                      >
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-400"
+                          style={{ width: `${p.porcentagem}%` }}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => votar(p.id)}
+                        disabled={encerrado || jaVotou || enviando || !deviceId}
+                        aria-pressed={ativo}
+                        className={`dn-card-btn mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-full border-2 px-3 py-2 text-xs font-bold uppercase tracking-wider focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-300 disabled:cursor-not-allowed sm:mt-4 sm:gap-3 sm:text-sm ${
+                          ativo
+                            ? "border-fuchsia-400 bg-fuchsia-500/30"
+                            : "border-violet-400/70 bg-[#120a28] hover:bg-violet-500/20"
+                        } ${jaVotou && !ativo ? "opacity-50" : ""}`}
+                      >
+                        {ativo ? <IconCheck /> : <IconCurtir />}
+                        {ativo ? "Votado" : encerrado ? "Encerrado" : "Votar"}
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => votar(p.id)}
-                      disabled={encerrado || jaVotou || enviando || !deviceId}
-                      aria-pressed={ativo}
-                      className={`dn-card-btn mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-full border-2 px-3 py-2 text-xs font-bold uppercase tracking-wider focus:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-300 disabled:cursor-not-allowed sm:mt-4 sm:gap-3 sm:text-sm ${
-                        ativo
-                          ? "border-fuchsia-400 bg-fuchsia-500/30"
-                          : "border-violet-400/70 bg-[#120a28] hover:bg-violet-500/20"
-                      } ${jaVotou && !ativo ? "opacity-50" : ""}`}
-                    >
-                      {ativo ? <IconCheck /> : <IconCurtir />}
-                      {ativo ? "Votado" : encerrado ? "Encerrado" : "Votar"}
-                    </button>
-                  </div>
-                </article>
-              </div>
-            );
-          })}
-        </section>
+                  </article>
+                </div>
+              );
+            })}
+          </section>
 
-        {msg && (
-          <p role="status" className="mt-4 text-center text-sm font-medium text-fuchsia-200">
-            {msg}
-          </p>
-        )}
+          {msg && (
+            <p role="status" className="mt-4 text-center text-sm font-medium text-fuchsia-200">
+              {msg}
+            </p>
+          )}
 
-        {/* RODAPÉ */}
-        <footer className="reveal mt-6 grid gap-3 border-t border-violet-500/50 pt-5 text-xs text-violet-100/90">
-          <div className="flex items-center gap-3">
-            <span className="text-violet-300">
-              <IconEnvelope />
-            </span>
-            <p>Ao votar, o resultado será enviado ao grupo Damas da Night.</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-violet-300">
-              <IconPin />
-            </span>
-            <p>
-              Sempre que um admin enviar #votação, o resultado oficial atualizado deste site será
-              fixado no grupo.
-            </p>
-          </div>
-          <div className="flex items-center gap-3 rounded-xl bg-violet-950/40 p-3">
-            <span className="text-violet-300">
-              <IconOlho />
-            </span>
-            <p className="text-sm italic text-fuchsia-200">
-              É paredão, bebê...
-              <br />
-              aqui até o robô fica de olho! 👁️💜
-            </p>
-          </div>
-        </footer>
-      </div>
-      </div>
-    </main>
+          {/* RODAPÉ */}
+          <footer className="reveal mt-6 grid gap-3 border-t border-violet-500/50 pt-5 text-xs text-violet-100/90">
+            <div className="flex items-center gap-3">
+              <span className="text-violet-300">
+                <IconEnvelope />
+              </span>
+              <p>Ao votar, o resultado será enviado ao grupo Damas da Night.</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-violet-300">
+                <IconPin />
+              </span>
+              <p>
+                Sempre que um admin enviar #votação, o resultado oficial atualizado deste site será
+                fixado no grupo.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 rounded-xl bg-violet-950/40 p-3">
+              <span className="text-violet-300">
+                <IconOlho />
+              </span>
+              <p className="text-sm italic text-fuchsia-200">
+                É paredão, bebê...
+                <br />
+                aqui até o robô fica de olho! 👁️💜
+              </p>
+            </div>
+          </footer>
+        </div>
+        </div>
+      </main>
+    </>
   );
 }
