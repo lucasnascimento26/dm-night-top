@@ -15,6 +15,11 @@ const INFO_VOTO = {
   texto: "Só membros do grupo Damas da Night podem votar.",
 };
 
+// PROPORÇÃO DO QUADRO DA FOTO (largura / altura).
+// Coloque aqui a proporção REAL da imagem dos participantes para ela aparecer inteira, sem sobras.
+// Exemplos: "1 / 1" (quadrada), "3 / 4" (retrato), "4 / 5", "16 / 9" (paisagem).
+const ASPECTO_FOTO = "1 / 1";
+
 type Participante = {
   id: number;
   nome: string;
@@ -830,7 +835,12 @@ export default function ParedaoPage() {
                     className={`dn-borda w-full overflow-hidden rounded-2xl ${ativo ? "dn-borda-ativa" : ""}`}
                     style={{ animationDelay: `-${i * 0.9}s` }}
                   >
-                    <div className="dn-card-foto relative aspect-[4/4.6] overflow-hidden">
+                    {/* QUADRO DA FOTO: a proporção vem de ASPECTO_FOTO (lá no topo do arquivo).
+                        A imagem usa object-contain, então aparece INTEIRA (a logo não é mais cortada). */}
+                    <div
+                      className="dn-card-foto relative overflow-hidden"
+                      style={{ aspectRatio: ASPECTO_FOTO }}
+                    >
                       {p.foto ? (
                         <Image
                           src={p.foto}
@@ -838,7 +848,7 @@ export default function ParedaoPage() {
                           fill
                           loading="eager"
                           sizes="(min-width: 1018px) 33vw, (min-width: 640px) 50vw, 100vw"
-                          className="dn-foto-img object-cover object-top"
+                          className="dn-foto-img object-contain object-center"
                         />
                       ) : (
                         <div className="flex h-full items-center justify-center text-7xl font-bold text-violet-400/40">
