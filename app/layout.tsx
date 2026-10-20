@@ -14,9 +14,18 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "Damas da Night",
+  metadataBase: new URL("https://www.damasdanight.top"),
+  title: "Damas da Night | Recadinho do Coração",
   description:
-    "Mande sua mensagem anônima: um desabafo, uma indireta, um elogio ou apenas um pensamento.",
+    "Site oficial da Damas da Night. Mande sua mensagem anônima: um desabafo, um recado, uma indireta, um elogio ou apenas um pensamento.",
+  openGraph: {
+    title: "Damas da Night | Recadinho do Coração",
+    description:
+      "Mande sua mensagem anônima: um desabafo, um recado, uma indireta, um elogio ou apenas um pensamento.",
+    type: "website",
+    locale: "pt_BR",
+    siteName: "Damas da Night",
+  },
 };
 
 export default function RootLayout({
