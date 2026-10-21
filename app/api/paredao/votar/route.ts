@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { paredoes, paredaoParticipantes, paredaoVotos } from "@/lib/db/schema";
 import { hashAparelho, hashVotante, ipDoRequest } from "@/lib/paredao";
 
-const MAX_VOTOS_POR_IP = 1;
+const MAX_VOTOS_POR_IP = 3;
 
 export async function POST(req: Request) {
   const { participanteId, deviceId } = await req.json().catch(() => ({}));
@@ -80,7 +80,7 @@ export async function POST(req: Request) {
     }
   }
 
-  // 3) Grava. Os índices únicos do banco (cookie, aparelho e IP) garantem
+  // 3) Grava. Os índices únicos do banco (cookie e aparelho) garantem
   //    a regra mesmo com cliques simultâneos.
   const inserted = await db
     .insert(paredaoVotos)
@@ -98,7 +98,7 @@ export async function POST(req: Request) {
     inserted.length
       ? NextResponse.json({ ok: true })
       : NextResponse.json(
-          { error: "Já existe um voto registrado neste aparelho ou rede." },
+          { error: "Já existe um voto registrado neste aparelho." },
           { status: 409 }
         )
   );
