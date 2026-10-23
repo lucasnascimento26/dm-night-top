@@ -962,8 +962,12 @@
 //   );
 // }
 
+
+/*===========================================================*/
+
 "use client";
 
+import Image from "next/image";
 import { useEffect } from "react";
 
 const css = `
@@ -998,9 +1002,25 @@ export default function ParedaoPage() {
         className="pointer-events-none absolute left-1/2 top-1/2 h-[60vmin] w-[60vmin] -translate-x-1/2 -translate-y-1/2 rounded-full bg-fuchsia-600/20 blur-[90px]"
       />
 
-      <h1 className="dn-shine-texto relative text-center text-[clamp(2rem,8vw,4.5rem)] font-extrabold italic uppercase leading-tight tracking-wide">
-        Votação encerrada
-      </h1>
+      <div className="relative flex flex-col items-center gap-5 text-center">
+        <h1 className="dn-shine-texto text-[clamp(2rem,8vw,4.5rem)] font-extrabold italic uppercase leading-tight tracking-wide">
+          Votação encerrada
+        </h1>
+
+        <p className="rounded-full border border-fuchsia-400/30 bg-fuchsia-500/10 px-5 py-2 text-[clamp(.85rem,3.2vw,1.1rem)] font-medium text-fuchsia-100/90 backdrop-blur-sm">
+          O emparedado só rola às <strong className="font-bold text-fuchsia-200">quintas-feiras</strong>
+        </p>
+
+        {/* logo da Damas da Night, centralizada abaixo do aviso */}
+        <Image
+          src="/images/logo-damas-da-night-neon.webp"
+          alt="Logo Damas da Night em letras rosa neon"
+          width={220}
+          height={80}
+          priority
+          className="mt-2 h-auto w-[clamp(8rem,30vw,13.75rem)]"
+        />
+      </div>
     </main>
   );
 }
