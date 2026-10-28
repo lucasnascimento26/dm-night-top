@@ -1,3 +1,17 @@
+// ============================================================================
+// ONDE MUDA O NÚMERO DO PAREDÃO ("1º Paredão", "2º Paredão"...)
+// O título do selo NÃO fica no código: ele vem do banco (Neon), tabela "paredoes",
+// coluna "titulo". Esta rota lê o paredão com ativo = true (o de maior id) e devolve
+// o titulo para a página (selo ao lado de "Participantes").
+//
+// Para o próximo paredão, no Neon:
+//   1) crie uma nova linha em "paredoes" com titulo = '2º Paredão', encerra_em e ativo = TRUE
+//   2) marque o paredão antigo como ativo = FALSE
+//   3) cadastre os participantes dele em "paredao_participantes"
+// Não precisa mexer no código.
+// ============================================================================
+
+
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { and, desc, eq, or, sql, type SQL } from "drizzle-orm";
@@ -55,6 +69,7 @@ export async function GET(req: Request) {
   }
 
   return NextResponse.json({
+    titulo: p.titulo,
     encerraEm: p.encerraEm.toISOString(),
     agora: new Date().toISOString(),
     encerrado: new Date() >= p.encerraEm,
