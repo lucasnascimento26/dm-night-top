@@ -24,7 +24,7 @@ export default function DamasDaNightPage() {
 
   return (
     <main className="content-fade-in relative min-h-screen w-full overflow-hidden bg-[#07030c] flex justify-center items-start sm:items-center py-0 sm:py-10 px-0 sm:px-4">
-      {/* ---------------- Cartão (moldura fixa tipo mobile) ---------------- */}
+      {/* --------------- Cartão (moldura fixa tipo mobile) --------------- */}
       <div className="relative isolate w-full max-w-[420px] min-h-screen sm:min-h-[860px] overflow-hidden sm:rounded-[2.5rem] sm:shadow-[0_0_60px_rgba(0,0,0,0.6)] text-white">
         <div
           className="absolute inset-0 -z-10 bg-no-repeat"
